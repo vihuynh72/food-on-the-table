@@ -63,16 +63,19 @@ function loadGoogleMaps(apiKey: string) {
 
   if (!googleMapsPromise) {
     googleMapsPromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
-      script.async = true;
-      script.onload = () => {
+      // Set up callback before loading script
+      (window as any).initGoogleMaps = () => {
         if (window.google?.maps) {
           resolve(window.google.maps);
         } else {
           reject(new Error("Google Maps failed to load"));
         }
       };
+
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+      script.async = true;
+      script.defer = true;
       script.onerror = () => reject(new Error("Google Maps script could not be loaded"));
       document.head.appendChild(script);
     });
@@ -94,6 +97,8 @@ export function DonationMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const userMarkerRef = useRef<google.maps.Marker | null>(null);
+  const userCircleRef = useRef<any>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSearchButton, setShowSearchButton] = useState(false);
@@ -170,9 +175,63 @@ export function DonationMap({
       isMounted = false;
       markersRef.current.forEach((marker) => marker.setMap(null));
       markersRef.current = [];
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+        userMarkerRef.current = null;
+      }
+      if (userCircleRef.current) {
+        userCircleRef.current.setMap(null);
+        userCircleRef.current = null;
+      }
       mapRef.current = null;
     };
   }, [apiKey]);
+
+  // Add user location marker and radius circle
+  useEffect(() => {
+    if (!mapRef.current || !isReady || !userPosition) return;
+
+    const maps = window.google.maps;
+
+    // Remove old user marker and circle if they exist
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setMap(null);
+    }
+    if (userCircleRef.current) {
+      userCircleRef.current.setMap(null);
+    }
+
+    // Create blue dot marker for user location
+    userMarkerRef.current = new maps.Marker({
+      position: userPosition,
+      map: mapRef.current,
+      title: "Your location",
+      icon: {
+        path: (maps.SymbolPath as any).CIRCLE,
+        scale: 8,
+        fillColor: "#4285F4",
+        fillOpacity: 1,
+        strokeWeight: 3,
+        strokeColor: "#FFFFFF",
+      },
+      zIndex: 1000,
+    } as any);
+
+    // Create radius circle (5 miles radius)
+    userCircleRef.current = new (maps as any).Circle({
+      strokeColor: "#4285F4",
+      strokeOpacity: 0.4,
+      strokeWeight: 2,
+      fillColor: "#4285F4",
+      fillOpacity: 0.1,
+      map: mapRef.current,
+      center: userPosition,
+      radius: 8046.72, // 5 miles in meters
+    });
+
+    mapRef.current.panTo(userPosition);
+    mapRef.current.setZoom(13);
+  }, [userPosition, isReady]);
 
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;

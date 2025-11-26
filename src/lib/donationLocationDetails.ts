@@ -11,12 +11,12 @@ export interface DonationLocationDetails {
   sourceLabel?: string;
 }
 
-// Fallback images by location type
-const FALLBACK_IMAGES: Record<string, string> = {
-  food_bank: "https://images.unsplash.com/photo-1506617420156-8e4536971650?auto=format&fit=crop&w=1200&q=80&sat=-20",
-  community_fridge: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80&sat=-15",
-  pantry: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80&sat=-20",
-  shelter: "https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=1200&q=80&sat=-25",
+// Fallback to organization-appropriate images
+const ORGANIZATION_IMAGES: Record<string, string> = {
+  food_bank: "https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80",
+  community_fridge: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=1200&q=80",
+  pantry: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1200&q=80",
+  shelter: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=80",
 };
 
 // Static mock details for known locations (fallback data)
@@ -27,7 +27,7 @@ const MOCK_DETAILS: Record<string, DonationLocationDetails> = {
     rating: 4.8,
     reviewCount: 214,
     lastUpdated: "Updated today",
-    heroImageUrl: FALLBACK_IMAGES.food_bank,
+    heroImageUrl: ORGANIZATION_IMAGES.food_bank,
     mapUrl: "https://maps.google.com/?q=Central+Food+Bank",
     sourceLabel: "Google Maps",
   },
@@ -37,7 +37,7 @@ const MOCK_DETAILS: Record<string, DonationLocationDetails> = {
     rating: 4.6,
     reviewCount: 96,
     lastUpdated: "Updated 2 hours ago",
-    heroImageUrl: FALLBACK_IMAGES.community_fridge,
+    heroImageUrl: ORGANIZATION_IMAGES.community_fridge,
     mapUrl: "https://maps.google.com/?q=Community+Sharing+Fridge",
     sourceLabel: "Google Maps",
   },
@@ -47,7 +47,7 @@ const MOCK_DETAILS: Record<string, DonationLocationDetails> = {
     rating: 4.4,
     reviewCount: 71,
     lastUpdated: "Updated yesterday",
-    heroImageUrl: FALLBACK_IMAGES.shelter,
+    heroImageUrl: ORGANIZATION_IMAGES.shelter,
     mapUrl: "https://maps.google.com/?q=Hope+Shelter+Pantry",
     sourceLabel: "Google Maps",
   },
@@ -57,7 +57,7 @@ const MOCK_DETAILS: Record<string, DonationLocationDetails> = {
     rating: 4.2,
     reviewCount: 53,
     lastUpdated: "Updated earlier this week",
-    heroImageUrl: undefined,
+    heroImageUrl: ORGANIZATION_IMAGES.pantry,
     mapUrl: "https://maps.google.com/?q=School+District+Pantry",
     sourceLabel: "Google Maps",
   },
@@ -67,7 +67,7 @@ const MOCK_DETAILS: Record<string, DonationLocationDetails> = {
     rating: 4.5,
     reviewCount: 118,
     lastUpdated: "Updated today",
-    heroImageUrl: FALLBACK_IMAGES.shelter,
+    heroImageUrl: ORGANIZATION_IMAGES.shelter,
     mapUrl: "https://maps.google.com/?q=Community+Care+Shelter",
     sourceLabel: "Google Maps",
   },
@@ -98,7 +98,7 @@ export async function fetchDonationLocationDetails(
           rating: undefined,
           reviewCount: undefined,
           lastUpdated: "Details from Google Places",
-          heroImageUrl: FALLBACK_IMAGES[location.type] || FALLBACK_IMAGES.food_bank,
+          heroImageUrl: ORGANIZATION_IMAGES[location.type] || ORGANIZATION_IMAGES.food_bank,
           mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}`,
           sourceLabel: "Google Maps",
         };

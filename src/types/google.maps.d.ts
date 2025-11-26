@@ -37,6 +37,23 @@ declare global {
       map?: Map | null;
       title?: string;
       icon?: Symbol;
+      zIndex?: number;
+    }
+
+    class Circle {
+      constructor(opts?: CircleOptions);
+      setMap(map: Map | null): void;
+    }
+
+    interface CircleOptions {
+      strokeColor?: string;
+      strokeOpacity?: number;
+      strokeWeight?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+      map?: Map | null;
+      center: LatLngLiteral;
+      radius: number;
     }
 
     class LatLngBounds {
@@ -69,6 +86,7 @@ declare global {
 
     enum SymbolPath {
       BACKWARD_CLOSED_ARROW,
+      CIRCLE,
     }
 
     interface Symbol {
