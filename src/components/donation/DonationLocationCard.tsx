@@ -44,7 +44,11 @@ export function DonationLocationCard({ location, selected, onSelect }: DonationL
   return (
     <>
       <Card
-        className={`transition-all cursor-pointer hover:shadow-lg ${selected ? "ring-2 ring-woodland" : ""}`}
+        className={`transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 ${
+          selected 
+            ? "ring-2 ring-woodland bg-pine-glade/30 shadow-md" 
+            : "hover:bg-card/80"
+        }`}
         onClick={() => onSelect?.(location.id)}
         aria-pressed={selected}
         role="button"
