@@ -1,15 +1,18 @@
-import { MapPin, Phone, ExternalLink, Clock, Navigation2, Copy, CheckCircle2, XCircle } from "lucide-react";
+import { MapPin, Phone, ExternalLink, Clock, Navigation2, Copy, CheckCircle2, XCircle, Star, Loader2 } from "lucide-react";
 import type { DonationLocation } from "@/components/donation/DonationMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
+import type { PlaceDetailsResponse } from "@/lib/placeDetailsClient";
 
 interface DonationDetailsSheetProps {
   location: DonationLocation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDonate?: () => void;
+  placeDetails?: PlaceDetailsResponse | null;
+  loadingPlaceDetails?: boolean;
 }
 
 const typeLabels: Record<DonationLocation["type"], string> = {
@@ -31,11 +34,22 @@ export function DonationDetailsSheet({
   open,
   onOpenChange,
   onDonate,
+  placeDetails,
+  loadingPlaceDetails = false,
 }: DonationDetailsSheetProps) {
   if (!location) return null;
 
+  const addressToShow = placeDetails?.formattedAddress || location.address;
+  const phoneToShow = placeDetails?.formattedPhoneNumber || location.phone;
+  const websiteToShow = placeDetails?.websiteUri || location.website;
+  const openingHours = placeDetails?.openingHoursText;
+  const rating = placeDetails?.rating;
+  const warning = placeDetails?.warning;
+  const placeSource = placeDetails?.source;
+  const openNow = placeDetails?.openNow;
+
   const handleCopyAddress = () => {
-    navigator.clipboard.writeText(location.address);
+    navigator.clipboard.writeText(addressToShow);
     toast({
       title: "Address copied",
       description: "Address copied to clipboard",
@@ -43,14 +57,8 @@ export function DonationDetailsSheet({
   };
 
   const handleGetDirections = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.address)}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressToShow)}`;
     window.open(url, "_blank");
-  };
-
-  const handleCall = () => {
-    if (location.phone) {
-      window.location.href = `tel:${location.phone}`;
-    }
   };
 
   return (
@@ -60,7 +68,7 @@ export function DonationDetailsSheet({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <SheetTitle className="text-2xl text-woodland mb-2">
-                {location.name}
+                {placeDetails?.name || location.name}
               </SheetTitle>
               <Badge className={typeColors[location.type]}>
                 {typeLabels[location.type]}
@@ -71,6 +79,30 @@ export function DonationDetailsSheet({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Status */}
+          <section className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            {placeSource && (
+              <span>Source: {placeSource}</span>
+            )}
+            {loadingPlaceDetails && (
+              <span className="flex items-center gap-2 text-xs">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Fetching latest info…
+              </span>
+            )}
+            {openNow !== undefined && (
+              <Badge variant={openNow ? "secondary" : "outline"} className="text-xs">
+                <span className={`mr-1 inline-block h-2 w-2 rounded-full ${openNow ? "bg-emerald-500" : "bg-amber-500"}`} />
+                {openNow ? "Open now" : "Closed"}
+              </Badge>
+            )}
+            {rating && (
+              <span className="flex items-center gap-1 text-sm text-foreground">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                {rating.toFixed(1)} / 5
+              </span>
+            )}
+          </section>
+
           {/* Distance */}
           {location.distanceLabel && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -82,7 +114,7 @@ export function DonationDetailsSheet({
           {/* Address */}
           <section>
             <h3 className="text-sm font-semibold text-woodland mb-2">Address</h3>
-            <p className="text-sm text-foreground mb-2">{location.address}</p>
+            <p className="text-sm text-foreground mb-2">{addressToShow}</p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -106,7 +138,19 @@ export function DonationDetailsSheet({
           </section>
 
           {/* Hours */}
-          {location.hours && (
+          {openingHours?.length ? (
+            <section>
+              <h3 className="text-sm font-semibold text-woodland mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-asparagus" />
+                Hours
+              </h3>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {openingHours.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </section>
+          ) : location.hours ? (
             <section>
               <h3 className="text-sm font-semibold text-woodland mb-2 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-asparagus" />
@@ -114,37 +158,62 @@ export function DonationDetailsSheet({
               </h3>
               <p className="text-sm text-muted-foreground">{location.hours}</p>
             </section>
-          )}
+          ) : null}
 
           {/* Contact */}
-          {(location.phone || location.website) && (
+          {(phoneToShow || websiteToShow) && (
             <section>
               <h3 className="text-sm font-semibold text-woodland mb-2">Contact</h3>
+              {phoneToShow && (
+                <p className="text-sm text-foreground mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-asparagus" />
+                  <a
+                    href={`tel:${phoneToShow.replace(/[^\d+]/g, "")}`}
+                    className="text-asparagus hover:underline font-medium"
+                  >
+                    {phoneToShow}
+                  </a>
+                </p>
+              )}
               <div className="flex gap-2">
-                {location.phone && (
+                {phoneToShow && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleCall}
                     className="flex-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(phoneToShow);
+                      toast({
+                        title: "Phone number copied",
+                        description: `${phoneToShow} copied to clipboard`,
+                      });
+                    }}
                   >
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Phone
                   </Button>
                 )}
-                {location.website && (
+                {websiteToShow && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(location.website, "_blank")}
+                    asChild
                     className="flex-1"
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Website
+                    <a href={websiteToShow} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Website
+                    </a>
                   </Button>
                 )}
               </div>
             </section>
+          )}
+
+          {warning && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              {warning}
+            </div>
           )}
 
           {/* Donation Policy */}

@@ -9,7 +9,7 @@ interface LocationSearchBarProps {
 
 export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -29,8 +29,7 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
 
     try {
       // Initialize autocomplete
-      const AutocompleteConstructor = (window.google.maps.places as any).Autocomplete;
-      autocompleteRef.current = new AutocompleteConstructor(inputRef.current, {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         types: ["geocode"],
         fields: ["geometry", "formatted_address", "name"],
       });
@@ -65,7 +64,7 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
 
     return () => {
       if (autocompleteRef.current && window.google?.maps?.event) {
-        (window.google.maps.event as any).clearInstanceListeners(autocompleteRef.current);
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
   }, [isReady, onLocationSelect]);
