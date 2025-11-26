@@ -3,6 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { FoodItemCard } from "@/components/FoodItemCard";
 import { StatCard } from "@/components/StatCard";
 import { QuickActionCard } from "@/components/QuickActionCard";
+import { TriageQuiz } from "@/components/TriageQuiz";
 import { Button } from "@/components/ui/button";
 import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -76,6 +77,9 @@ export default function Index() {
             </Button>
           </div>
         </section>
+
+        {/* Triage Quiz Modal */}
+        <TriageQuiz open={showTriageModal} onOpenChange={setShowTriageModal} />
 
         {/* Use This Next Section */}
         <section className="space-y-6 animate-fade-in">
