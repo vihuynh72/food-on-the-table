@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DonationLocation, DonationLocationType } from "@/components/donation/DonationMap";
 
 interface PlacesSearchParams {
@@ -23,6 +23,91 @@ const SEARCH_QUERIES = [
   { keyword: "soup kitchen", type: "shelter" as DonationLocationType },
   { keyword: "community fridge", type: "community_fridge" as DonationLocationType },
 ];
+
+const RELEVANT_GOOGLE_TYPES = new Set<string>([
+  "food_bank",
+  "meal_delivery",
+  "meal_takeaway",
+  "supermarket",
+  "grocery_or_supermarket",
+  "church",
+  "place_of_worship",
+  "synagogue",
+  "mosque",
+  "hindu_temple",
+  "community_center",
+  "local_government_office",
+  "social_service_organization",
+  "charity",
+]);
+
+const RELEVANT_NAME_KEYWORDS = [
+  "food bank",
+  "food pantry",
+  "pantry",
+  "community fridge",
+  "community kitchen",
+  "soup kitchen",
+  "meal center",
+  "mutual aid",
+  "resource center",
+  "mission",
+  "shelter",
+  "food shelf",
+];
+
+const BLOCKLIST_KEYWORDS = [
+  "appliance",
+  "appliances",
+  "equipment",
+  "restaurant supply",
+  "electronics",
+  "hardware",
+  "repair",
+  "catering",
+  "pizza",
+  "burger",
+  "coffee",
+  "cafe",
+  "bar",
+  "club",
+  "hotel",
+  "motel",
+  "resort",
+  "dealership",
+  "rentals",
+  "atm",
+];
+
+function matchesRelevantTypes(types?: string[]): boolean {
+  if (!types?.length) return false;
+  return types.some((type) => RELEVANT_GOOGLE_TYPES.has(type.toLowerCase()));
+}
+
+function matchesRelevantKeywords(text: string): boolean {
+  const value = text.toLowerCase();
+  return RELEVANT_NAME_KEYWORDS.some((keyword) => value.includes(keyword));
+}
+
+function containsBlockedKeywords(text: string): boolean {
+  const value = text.toLowerCase();
+  return BLOCKLIST_KEYWORDS.some((keyword) => value.includes(keyword));
+}
+
+function isRelevantPlace(place: google.maps.places.PlaceResult): boolean {
+  const metadata = `${place.name || ""} ${place.formatted_address || ""}`.trim();
+  if (!metadata) return false;
+
+  if (containsBlockedKeywords(metadata)) {
+    return false;
+  }
+
+  if (matchesRelevantTypes(place.types)) {
+    return true;
+  }
+
+  return matchesRelevantKeywords(metadata);
+}
 
 function inferLocationType(name: string, types: string[]): DonationLocationType {
   const nameLC = name.toLowerCase();
@@ -87,7 +172,10 @@ async function performSearch(
             if (
               place.place_id &&
               !seenPlaceIds.has(place.place_id) &&
-              place.geometry?.location
+              place.geometry?.location &&
+              (place.business_status === undefined ||
+                place.business_status === window.google.maps.places.BusinessStatus?.OPERATIONAL) &&
+              isRelevantPlace(place)
             ) {
               seenPlaceIds.add(place.place_id);
 
@@ -118,6 +206,7 @@ async function performSearch(
 
               allResults.push({
                 id: place.place_id,
+                placeId: place.place_id,
                 name: place.name || "Unknown Location",
                 type: locationType,
                 lat,
@@ -155,21 +244,21 @@ export function usePlacesSearch({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchArea = async (
-    center: google.maps.LatLngLiteral,
-    searchRadius: number = radius
-  ) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const results = await performSearch(center, searchRadius);
-      setLocations(results);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to search places");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const searchArea = useCallback(
+    async (center: google.maps.LatLngLiteral, searchRadius: number = radius) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const results = await performSearch(center, searchRadius);
+        setLocations(results);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to search places");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [radius],
+  );
 
   useEffect(() => {
     if (!location || !enabled) {
@@ -181,11 +270,11 @@ export function usePlacesSearch({
         setTimeout(checkAndSearch, 500);
         return;
       }
-      await searchArea(location, radius);
+      await searchArea(location);
     };
 
     checkAndSearch();
-  }, [location, radius, enabled]);
+  }, [location, enabled, searchArea]);
 
   return { locations, isLoading, error, searchArea };
 }

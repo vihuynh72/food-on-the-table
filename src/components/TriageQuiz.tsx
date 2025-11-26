@@ -22,6 +22,7 @@ import {
   Snowflake,
   AlertCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface TriageQuizProps {
   open: boolean;
@@ -39,7 +40,7 @@ interface QuizState {
 
 interface Recommendation {
   action: string;
-  icon: any;
+  icon: LucideIcon;
   reason: string;
   priority: "primary" | "secondary";
 }
@@ -80,7 +81,7 @@ export function TriageQuiz({ open, onOpenChange }: TriageQuizProps) {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  const updateState = (key: keyof QuizState, value: any) => {
+  const updateState = <K extends keyof QuizState>(key: K, value: QuizState[K]) => {
     setQuizState((prev) => ({ ...prev, [key]: value }));
   };
 

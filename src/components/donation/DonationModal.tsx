@@ -155,11 +155,12 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
         resetForm();
       }, 5000);
 
-    } catch (error: any) {
-      console.error('Error logging donation:', error);
+    } catch (error: unknown) {
+      console.error("Error logging donation:", error);
+      const message = error instanceof Error ? error.message : "Failed to log donation. Please try again.";
       toast({
         title: "Error",
-        description: error.message || "Failed to log donation. Please try again.",
+        description: message,
         variant: "destructive",
       });
       setIsSubmitting(false);

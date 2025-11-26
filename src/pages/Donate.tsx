@@ -4,7 +4,6 @@ import { DonationMap, type DonationLocationType, type DonationLocation } from "@
 import { DonationLocationCard } from "@/components/donation/DonationLocationCard";
 import { DonationDetailsSheet } from "@/components/donation/DonationDetailsSheet";
 import { LocationSearchBar } from "@/components/donation/LocationSearchBar";
-import { DONATION_LOCATIONS } from "@/data/donationLocations";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { Button } from "@/components/ui/button";
@@ -41,11 +40,7 @@ export default function Donate() {
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
 
-  // Use Places search results if available, otherwise fall back to static data
-  const effectiveLocations = useMemo(
-    () => (locations.length > 0 ? locations : DONATION_LOCATIONS),
-    [locations],
-  );
+  const effectiveLocations = useMemo(() => locations, [locations]);
 
   const visibleLocations = useMemo(
     () =>
@@ -110,12 +105,6 @@ export default function Donate() {
   );
 
   useEffect(() => {
-    if (effectiveLocations.length > 0 && !selectedLocationId) {
-      setSelectedLocationId(effectiveLocations[0].id);
-    }
-  }, [effectiveLocations, selectedLocationId]);
-
-  useEffect(() => {
     if (status === "success") {
       toast({ title: "Location found", description: "Centering near you." });
     }
@@ -143,16 +132,10 @@ export default function Donate() {
     });
   }, [locationDetails, loadingDetails, visibleLocations]);
 
-  useEffect(() => {
-    const firstLocation = effectiveLocations[0];
-    if (firstLocation) {
-      void fetchDetailsForLocation(firstLocation);
-    }
-  }, [effectiveLocations, fetchDetailsForLocation]);
-
   const handleLocationSelection = useCallback(
     async (id: string, scrollTarget?: "map" | "card") => {
       setSelectedLocationId(id);
+      setSelectedLocationDetails(null);
       const location = effectiveLocations.find((loc) => loc.id === id);
       if (!location) {
         toast({
@@ -305,57 +288,6 @@ export default function Donate() {
                 isSearching={isManualSearching}
               />
             </div>
-
-            <Card className="border-asparagus/20 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-woodland">Location details</CardTitle>
-                <CardDescription>
-                  We fetch details from your places provider and cache them to speed up future lookups.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-muted-foreground">
-                {selectedLocationDetails ? (
-                  <>
-                    <p className="text-base font-semibold text-woodland">
-                      {selectedLocationDetails.name || selectedLocation?.name}
-                    </p>
-                    <p>{selectedLocationDetails.formattedAddress || selectedLocation?.address}</p>
-                    {selectedLocationDetails.formattedPhoneNumber && (
-                      <p className="text-sm">Phone: {selectedLocationDetails.formattedPhoneNumber}</p>
-                    )}
-                    {selectedLocationDetails.websiteUri && (
-                      <a
-                        href={selectedLocationDetails.websiteUri}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-woodland underline underline-offset-4"
-                      >
-                        Visit website
-                      </a>
-                    )}
-                    {selectedLocationDetails.openingHoursText?.length ? (
-                      <ul className="list-disc list-inside space-y-1">
-                        {selectedLocationDetails.openingHoursText.map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {selectedLocationDetails.rating && (
-                      <p>Rating: {selectedLocationDetails.rating.toFixed(1)} / 5</p>
-                    )}
-                    <p className="text-xs">Source: {selectedLocationDetails.source}</p>
-                    {selectedLocationDetails.warning && (
-                      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                        {selectedLocationDetails.warning}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm">Choose a location to view its latest details.</p>
-                )}
-                {isFetchingDetails && <p className="text-xs">Loading details…</p>}
-              </CardContent>
-            </Card>
           </div>
 
           <div className="space-y-4 lg:max-h-[600px] lg:overflow-y-auto">
@@ -385,6 +317,8 @@ export default function Donate() {
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
           onDonate={handleDonate}
+          placeDetails={selectedLocationDetails}
+          loadingPlaceDetails={isFetchingDetails}
         />
 
         <Card className="border-asparagus/20 bg-gradient-to-br from-card to-muted/30">

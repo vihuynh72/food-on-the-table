@@ -139,6 +139,7 @@ declare global {
         opening_hours?: {
           weekday_text?: string[];
         };
+        business_status?: BusinessStatus;
       }
 
       interface PlaceGeometry {
@@ -153,14 +154,21 @@ declare global {
         REQUEST_DENIED = "REQUEST_DENIED",
         UNKNOWN_ERROR = "UNKNOWN_ERROR",
       }
+
+      enum BusinessStatus {
+        OPERATIONAL = "OPERATIONAL",
+        CLOSED_TEMPORARILY = "CLOSED_TEMPORARILY",
+        CLOSED_PERMANENTLY = "CLOSED_PERMANENTLY",
+      }
     }
 
     namespace event {
-      function clearInstanceListeners(instance: any): void;
+      function clearInstanceListeners(instance: unknown): void;
     }
   }
 
   interface Window {
-    google: typeof google;
+    google?: typeof google;
+    initGoogleMaps?: () => void;
   }
 }

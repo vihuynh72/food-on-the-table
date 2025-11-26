@@ -57,14 +57,15 @@ let googleMapsPromise: Promise<typeof google.maps> | null = null;
 
 function loadGoogleMaps(apiKey: string) {
   if (typeof window === "undefined") return Promise.reject(new Error("No window object"));
-  if (window.google?.maps && 'places' in window.google.maps) {
+  if (window.google?.maps && "places" in window.google.maps) {
     return Promise.resolve(window.google.maps);
   }
 
   if (!googleMapsPromise) {
     googleMapsPromise = new Promise((resolve, reject) => {
       // Set up callback before loading script
-      (window as any).initGoogleMaps = () => {
+      const windowWithInit = window as Window & { initGoogleMaps?: () => void };
+      windowWithInit.initGoogleMaps = () => {
         if (window.google?.maps) {
           resolve(window.google.maps);
         } else {
@@ -98,12 +99,17 @@ export function DonationMap({
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
-  const userCircleRef = useRef<any>(null);
+  const userCircleRef = useRef<google.maps.Circle | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSearchButton, setShowSearchButton] = useState(false);
   const initialCenterRef = useRef<google.maps.LatLngLiteral | null>(null);
   const hasShownButtonRef = useRef(false);
+  const latestUserPositionRef = useRef<google.maps.LatLngLiteral | null>(null);
+
+  useEffect(() => {
+    latestUserPositionRef.current = userPosition ?? null;
+  }, [userPosition]);
 
   const visibleLocations = useMemo(
     () =>
@@ -126,7 +132,7 @@ export function DonationMap({
     loadGoogleMaps(apiKey)
       .then((maps) => {
         if (!mapContainerRef.current || !isMounted) return;
-        const center = userPosition ?? DEFAULT_CENTER;
+        const center = latestUserPositionRef.current ?? DEFAULT_CENTER;
         initialCenterRef.current = center;
         mapRef.current = new maps.Map(mapContainerRef.current, {
           center,
@@ -207,7 +213,7 @@ export function DonationMap({
       map: mapRef.current,
       title: "Your location",
       icon: {
-        path: (maps.SymbolPath as any).CIRCLE,
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 8,
         fillColor: "#4285F4",
         fillOpacity: 1,
@@ -215,10 +221,10 @@ export function DonationMap({
         strokeColor: "#FFFFFF",
       },
       zIndex: 1000,
-    } as any);
+    });
 
     // Create radius circle (5 miles radius)
-    userCircleRef.current = new (maps as any).Circle({
+    userCircleRef.current = new maps.Circle({
       strokeColor: "#4285F4",
       strokeOpacity: 0.4,
       strokeWeight: 2,

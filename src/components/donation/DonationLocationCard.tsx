@@ -40,7 +40,13 @@ const typeColors: Record<DonationLocation["type"], string> = {
   shelter: "bg-desert-sand text-woodland",
 };
 
-export function DonationLocationCard({ location, selected, onSelect, details, loadingDetails }: DonationLocationCardProps) {
+export function DonationLocationCard({
+  location,
+  selected,
+  onSelect,
+  details,
+  loadingDetails,
+}: DonationLocationCardProps) {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
