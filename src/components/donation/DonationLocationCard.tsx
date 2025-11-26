@@ -1,16 +1,29 @@
-import { useState } from "react";
-import { MapPin, Phone, ExternalLink, Clock, CheckCircle2, Navigation2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  MapPin,
+  Phone,
+  ExternalLink,
+  Clock,
+  CheckCircle2,
+  Navigation2,
+  ImageOff,
+  Star,
+} from "lucide-react";
 
 import type { DonationLocation } from "@/components/donation/DonationMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DonationModal } from "./DonationModal";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { DonationLocationDetails } from "@/lib/donationLocationDetails";
 
 interface DonationLocationCardProps {
   location: DonationLocation;
   selected?: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: (id: string) => Promise<void> | void;
+  details?: DonationLocationDetails | null;
+  loadingDetails?: boolean;
 }
 
 const typeLabels: Record<DonationLocation["type"], string> = {
@@ -27,8 +40,15 @@ const typeColors: Record<DonationLocation["type"], string> = {
   shelter: "bg-desert-sand text-woodland",
 };
 
-export function DonationLocationCard({ location, selected, onSelect }: DonationLocationCardProps) {
+export function DonationLocationCard({ location, selected, onSelect, details, loadingDetails }: DonationLocationCardProps) {
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [details?.heroImageUrl, location.id]);
 
   const handleGetDirections = () => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.address)}`;
@@ -41,32 +61,104 @@ export function DonationLocationCard({ location, selected, onSelect }: DonationL
     }
   };
 
+  const statusBadge = useMemo(() => {
+    if (loadingDetails) {
+      return <Skeleton className="h-6 w-20 rounded-full" />;
+    }
+
+    if (details?.openNow === undefined) return null;
+
+    return (
+      <Badge variant={details.openNow ? "secondary" : "outline"} className="flex items-center gap-1 text-xs">
+        <div className={`h-2 w-2 rounded-full ${details.openNow ? "bg-emerald-500" : "bg-amber-500"}`} />
+        {details.openNow ? "Open now" : "Closed"}
+      </Badge>
+    );
+  }, [details?.openNow, loadingDetails]);
+
   return (
     <>
       <Card
-        className={`transition-all cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1 ${
-          selected 
-            ? "ring-2 ring-woodland bg-pine-glade/30 shadow-md" 
-            : "hover:bg-card/80"
-        }`}
-        onClick={() => onSelect?.(location.id)}
+        className={`transition-all cursor-pointer hover:shadow-lg ${selected ? "ring-2 ring-woodland" : ""}`}
+        onClick={() => {
+          void Promise.resolve(onSelect?.(location.id));
+        }}
         aria-pressed={selected}
         role="button"
         data-location-id={location.id}
       >
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <CardTitle className="text-lg text-woodland">{location.name}</CardTitle>
-              <CardDescription className="mt-1">
-                <div className="flex items-center gap-1 text-sm">
-                  <MapPin className="w-4 h-4" />
-                  {location.distanceLabel ? `${location.distanceLabel} • ` : null}
-                  {location.address}
+        <CardHeader className="space-y-3 pb-4">
+          <div className="relative overflow-hidden rounded-xl border bg-muted/30">
+            {loadingDetails ? (
+              <Skeleton className="h-40 w-full rounded-none" />
+            ) : details?.heroImageUrl && !imageError ? (
+              <>
+                {!imageLoaded && <Skeleton className="absolute inset-0 h-full w-full rounded-none" />}
+                <img
+                  src={details.heroImageUrl}
+                  alt={`Exterior photo of ${location.name}`}
+                  className={`h-40 w-full object-cover transition-opacity ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageError(true)}
+                  loading="lazy"
+                />
+              </>
+            ) : (
+              <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-asparagus/20 to-woodland/30 text-woodland">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ImageOff className="h-5 w-5" />
+                  No photo available
                 </div>
+              </div>
+            )}
+
+            {details?.mapUrl && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute bottom-3 right-3 bg-background/90 text-woodland shadow"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(details.mapUrl, "_blank");
+                }}
+              >
+                View on Google Maps
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 space-y-1">
+              <CardTitle className="text-lg text-woodland">{location.name}</CardTitle>
+              <CardDescription className="flex flex-wrap items-center gap-1 text-sm">
+                <MapPin className="w-4 h-4" />
+                {location.distanceLabel ? `${location.distanceLabel} • ` : null}
+                {location.address}
               </CardDescription>
+              {details?.description ? (
+                <p className="text-sm text-muted-foreground line-clamp-2">{details.description}</p>
+              ) : loadingDetails ? (
+                <Skeleton className="h-4 w-3/4" />
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-sm text-muted-foreground">
+                {statusBadge}
+                {loadingDetails ? (
+                  <Skeleton className="h-4 w-20" />
+                ) : details?.rating ? (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    {details.rating.toFixed(1)} {details.reviewCount ? `(${details.reviewCount})` : null}
+                  </span>
+                ) : null}
+                {!loadingDetails && details?.lastUpdated && (
+                  <span className="text-xs text-muted-foreground">{details.lastUpdated}</span>
+                )}
+              </div>
             </div>
-            <Badge className={typeColors[location.type]}>{typeLabels[location.type]}</Badge>
+            <div className="flex flex-col items-end gap-2">
+              <Badge className={typeColors[location.type]}>{typeLabels[location.type]}</Badge>
+            </div>
           </div>
         </CardHeader>
 
@@ -76,6 +168,10 @@ export function DonationLocationCard({ location, selected, onSelect }: DonationL
               <Clock className="w-4 h-4 text-asparagus" />
               <span className="text-muted-foreground">{location.hours}</span>
             </div>
+          )}
+
+          {!details?.description && !loadingDetails && (
+            <p className="text-sm text-muted-foreground">Additional details will appear here when available.</p>
           )}
 
           <div>

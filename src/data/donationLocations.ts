@@ -1,10 +1,11 @@
 import type { DonationLocation } from "@/components/donation/DonationMap";
 
 export const DONATION_LOCATIONS: DonationLocation[] = [
-  {
+  { 
     id: "central-food-bank",
     name: "Central Food Bank",
     type: "food_bank",
+    placeId: "central-food-bank-place-id",
     lat: 39.7392,
     lng: -104.9903,
     address: "123 Main St, Downtown",
@@ -24,6 +25,7 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     id: "community-sharing-fridge",
     name: "Community Sharing Fridge",
     type: "community_fridge",
+    placeId: "community-sharing-fridge-place-id",
     lat: 39.742,
     lng: -104.982,
     address: "456 Oak Ave, Northside",
@@ -43,6 +45,7 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     id: "hope-shelter-pantry",
     name: "Hope Shelter Pantry",
     type: "shelter",
+    placeId: "hope-shelter-pantry-place-id",
     lat: 39.731,
     lng: -104.985,
     address: "789 Elm St, Southside",
@@ -62,6 +65,7 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     id: "school-district-pantry",
     name: "School District Pantry",
     type: "pantry",
+    placeId: "school-district-pantry-place-id",
     lat: 39.728,
     lng: -104.999,
     address: "321 Pine Rd, Westside",
@@ -81,6 +85,7 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     id: "community-care-shelter",
     name: "Community Care Shelter",
     type: "shelter",
+    placeId: "community-care-shelter-place-id",
     lat: 39.75,
     lng: -104.99,
     address: "950 Maple Ave, Midtown",

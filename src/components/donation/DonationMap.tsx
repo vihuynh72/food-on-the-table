@@ -14,6 +14,7 @@ export interface DonationLocation {
   id: string;
   name: string;
   type: DonationLocationType;
+  placeId?: string;
   lat: number;
   lng: number;
   address: string;
@@ -30,7 +31,7 @@ export interface DonationMapProps {
   locations: DonationLocation[];
   activeTypeFilter: DonationLocationType | "all";
   selectedLocationId?: string;
-  onSelectLocation?: (id: string) => void;
+  onSelectLocation?: (id: string) => Promise<void> | void;
   userPosition?: google.maps.LatLngLiteral | null;
   onSearchArea?: (center: google.maps.LatLngLiteral) => void;
   isSearching?: boolean;
@@ -203,7 +204,11 @@ export function DonationMap({
         },
       });
 
-      marker.addListener("click", () => onSelectLocation?.(location.id));
+      marker.addListener("click", () => {
+        void Promise.resolve(onSelectLocation?.(location.id)).catch((error) => {
+          console.error("Failed to handle marker selection", error);
+        });
+      });
       markersRef.current.push(marker);
     });
 
