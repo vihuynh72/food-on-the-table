@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, Package, Users, Trophy, BookOpen, Settings } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Home, Package, Users, Trophy, BookOpen, Settings, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -17,6 +18,18 @@ const navItems = [
 export function Navigation() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleAuthAction = async () => {
+    if (user) {
+      await signOut();
+      navigate("/");
+    } else {
+      navigate("/auth");
+    }
+    setOpen(false);
+  };
 
   const NavLink = ({ item, mobile = false }: { item: typeof navItems[0]; mobile?: boolean }) => {
     const isActive = location.pathname === item.href;
@@ -55,6 +68,24 @@ export function Navigation() {
             {navItems.map((item) => (
               <NavLink key={item.href} item={item} />
             ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAuthAction}
+              className="flex items-center gap-2"
+            >
+              {user ? (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </>
+              ) : (
+                <>
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </>
+              )}
+            </Button>
           </div>
 
           {/* Mobile Navigation */}
@@ -75,6 +106,23 @@ export function Navigation() {
                 {navItems.map((item) => (
                   <NavLink key={item.href} item={item} mobile />
                 ))}
+                <Button
+                  variant="ghost"
+                  onClick={handleAuthAction}
+                  className="flex items-center gap-2 justify-start"
+                >
+                  {user ? (
+                    <>
+                      <LogOut className="h-5 w-5" />
+                      Sign Out
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-5 w-5" />
+                      Sign In
+                    </>
+                  )}
+                </Button>
               </div>
             </SheetContent>
           </Sheet>
