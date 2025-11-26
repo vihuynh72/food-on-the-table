@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      donations: {
+        Row: {
+          created_at: string | null
+          donated_at: string | null
+          food_item_name: string
+          id: string
+          impact_co2: number | null
+          impact_kg: number | null
+          impact_money: number | null
+          location_id: string
+          location_name: string
+          photo_url: string | null
+          points_earned: number | null
+          quantity: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          donated_at?: string | null
+          food_item_name: string
+          id?: string
+          impact_co2?: number | null
+          impact_kg?: number | null
+          impact_money?: number | null
+          location_id: string
+          location_name: string
+          photo_url?: string | null
+          points_earned?: number | null
+          quantity?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          donated_at?: string | null
+          food_item_name?: string
+          id?: string
+          impact_co2?: number | null
+          impact_kg?: number | null
+          impact_money?: number | null
+          location_id?: string
+          location_name?: string
+          photo_url?: string | null
+          points_earned?: number | null
+          quantity?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          created_at: string | null
+          total_co2_reduced_kg: number | null
+          total_donations: number | null
+          total_food_saved_kg: number | null
+          total_money_saved: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          total_co2_reduced_kg?: number | null
+          total_donations?: number | null
+          total_food_saved_kg?: number | null
+          total_money_saved?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          total_co2_reduced_kg?: number | null
+          total_donations?: number | null
+          total_food_saved_kg?: number | null
+          total_money_saved?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
