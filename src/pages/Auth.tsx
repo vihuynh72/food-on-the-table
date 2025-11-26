@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Chrome } from "lucide-react";
 import { z } from "zod";
 
 const signupSchema = z.object({
@@ -115,6 +117,9 @@ export default function Auth() {
         password: validated.password,
         options: {
           emailRedirectTo: redirectUrl,
+          data: {
+            zip_code: validated.zipCode,
+          }
         }
       });
 
@@ -161,6 +166,31 @@ export default function Auth() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Google. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -178,75 +208,129 @@ export default function Auth() {
             </TabsList>
             
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+              <div className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                >
+                  <Chrome className="mr-2 h-4 w-4" />
+                  Continue with Google
                 </Button>
-              </form>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with email
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Password</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Login"}
+                  </Button>
+                </form>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  By continuing, you agree to our Terms and Privacy Policy
+                </p>
+              </div>
             </TabsContent>
             
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip-code">Zip Code</Label>
-                  <Input
-                    id="zip-code"
-                    type="text"
-                    placeholder="12345"
-                    maxLength={5}
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value.replace(/\D/g, ''))}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Sign Up"}
+              <div className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                >
+                  <Chrome className="mr-2 h-4 w-4" />
+                  Continue with Google
                 </Button>
-              </form>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with email
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zip-code">Zip Code</Label>
+                    <Input
+                      id="zip-code"
+                      type="text"
+                      placeholder="12345"
+                      maxLength={5}
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value.replace(/\D/g, ''))}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Sign Up"}
+                  </Button>
+                </form>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  By continuing, you agree to our Terms and Privacy Policy
+                </p>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
