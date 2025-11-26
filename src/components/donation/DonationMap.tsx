@@ -2,6 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 export type DonationLocationType = "food_bank" | "community_fridge" | "pantry" | "shelter";
 
+export interface DonationPolicy {
+  accepts: string[];
+  notAccepted?: string[];
+  notes?: string;
+}
+
 export interface DonationLocation {
   id: string;
   name: string;
@@ -14,6 +20,8 @@ export interface DonationLocation {
   phone?: string;
   website?: string;
   distanceLabel?: string;
+  policy?: DonationPolicy;
+  description?: string;
 }
 
 export interface DonationMapProps {

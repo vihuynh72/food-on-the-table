@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "@/components/ui/use-toast";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, Info } from "lucide-react";
 
 const filterOptions: { label: string; value: DonationLocationType | "all" }[] = [
   { label: "All", value: "all" },
@@ -68,12 +68,17 @@ export default function Donate() {
       <Navigation />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-6 space-y-1">
+        <div className="mb-6 space-y-3">
           <h1 className="text-3xl md:text-4xl font-bold text-woodland mb-2">Donate Food Locally</h1>
-          <p className="text-muted-foreground">Find nearby donation locations for your surplus food</p>
-          <p className="text-sm text-muted-foreground">
-            {visibleLocations.length} location{visibleLocations.length === 1 ? "" : "s"} found near you
+          <p className="text-base text-muted-foreground max-w-3xl">
+            Find nearby food banks, community fridges, and pantries, and check what they accept before you go.
           </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border border-border/50">
+            <Info className="w-4 h-4 text-asparagus flex-shrink-0" />
+            <p>
+              Showing <span className="font-semibold text-woodland">{visibleLocations.length}</span> donation location{visibleLocations.length === 1 ? "" : "s"} near you
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -152,12 +157,17 @@ export default function Donate() {
           </div>
         </div>
 
-        <Card className="border-asparagus/20">
+        <Card className="border-asparagus/20 bg-gradient-to-br from-card to-muted/30">
           <CardHeader>
             <CardTitle className="text-woodland">Donation Guidelines</CardTitle>
-            <CardDescription>What you need to know before donating</CardDescription>
+            <CardDescription>Important tips before you donate</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border/50">
+              <p className="text-sm text-muted-foreground">
+                💡 <strong className="text-woodland">Tip:</strong> Always double-check the location's website or call ahead if you're unsure what they accept.
+              </p>
+            </div>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-woodland">What items can I donate?</AccordionTrigger>
