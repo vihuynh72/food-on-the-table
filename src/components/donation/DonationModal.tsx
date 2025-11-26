@@ -223,10 +223,10 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
             <>
               <DialogHeader>
                 <DialogTitle className="text-woodland">Mark as Donated</DialogTitle>
-                <DialogDescription>
-                  Log your donation to {locationName}
-                </DialogDescription>
               </DialogHeader>
+              <DialogDescription>
+                Log your donation to {locationName}
+              </DialogDescription>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
