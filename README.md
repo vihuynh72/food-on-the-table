@@ -60,6 +60,32 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Maps configuration
+
+To enable Google Maps on the Donate page, add a public API key to your environment. Create a `.env` file (or update your existing one) and set one of the following (both are supported):
+
+```
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
+# or for Vite builds
+VITE_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
+```
+
+Do not commit real keys. The page will show a helpful error message if the key is missing.
+
+To quickly set up your key locally, you can also run:
+
+```
+npm run setup:maps-key -- --key=<your_google_maps_api_key>
+```
+
+For example, to use the key you shared above:
+
+```
+npm run setup:maps-key -- --key=AIzaSyAS9s-w617HBJayA5tlAMsA5pHK8MZnYJs
+```
+
+This writes both `VITE_GOOGLE_MAPS_API_KEY` and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to `.env.local` (git-ignored) so the Donate map loads without checking secrets into version control.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/256dcf0c-9a58-4242-a3e6-c31c27080e3a) and click on Share -> Publish.
