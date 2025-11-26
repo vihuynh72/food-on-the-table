@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,8 @@ interface DonationModalProps {
 }
 
 export function DonationModal({ open, onOpenChange, locationId, locationName }: DonationModalProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [foodItemName, setFoodItemName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [notes, setNotes] = useState("");
@@ -61,6 +65,17 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to log donations",
+        variant: "destructive",
+      });
+      onOpenChange(false);
+      navigate("/auth");
+      return;
+    }
+    
     if (!foodItemName.trim()) {
       toast({
         title: "Missing information",
@@ -73,18 +88,6 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
     setIsSubmitting(true);
 
     try {
-      // Check if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to log donations",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
 
       let photoUrl = null;
 
