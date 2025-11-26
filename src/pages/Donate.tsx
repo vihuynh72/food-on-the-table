@@ -3,6 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { DonationMap, type DonationLocationType, type DonationLocation } from "@/components/donation/DonationMap";
 import { DonationLocationCard } from "@/components/donation/DonationLocationCard";
 import { DonationDetailsSheet } from "@/components/donation/DonationDetailsSheet";
+import { LocationSearchBar } from "@/components/donation/LocationSearchBar";
 import { DONATION_LOCATIONS } from "@/data/donationLocations";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
@@ -202,6 +203,22 @@ export default function Donate() {
     }
   };
 
+  const handleLocationSelect = async (location: { lat: number; lng: number; address: string }) => {
+    const center = { lat: location.lat, lng: location.lng };
+    setIsManualSearching(true);
+    try {
+      await searchArea(center);
+    } catch (err) {
+      toast({
+        title: "Search failed",
+        description: "Could not search this location. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsManualSearching(false);
+    }
+  };
+
   const handleDonate = () => {
     toast({
       title: "Donation logged",
@@ -275,6 +292,8 @@ export default function Donate() {
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           <div className="space-y-4" ref={mapSectionRef}>
+            <LocationSearchBar onLocationSelect={handleLocationSelect} />
+            
             <div className="h-[400px] lg:h-[520px] rounded-xl overflow-hidden border shadow-md">
               <DonationMap
                 locations={visibleLocations}

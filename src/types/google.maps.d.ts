@@ -92,6 +92,20 @@ declare global {
         ): void;
       }
 
+      class Autocomplete {
+        constructor(input: HTMLInputElement, opts?: AutocompleteOptions);
+        addListener(eventName: string, handler: () => void): google.maps.MapsEventListener;
+        getPlace(): PlaceResult;
+      }
+
+      interface AutocompleteOptions {
+        types?: string[];
+        fields?: string[];
+        componentRestrictions?: {
+          country?: string | string[];
+        };
+      }
+
       interface TextSearchRequest {
         query: string;
         location?: LatLng;
@@ -121,6 +135,10 @@ declare global {
         REQUEST_DENIED = "REQUEST_DENIED",
         UNKNOWN_ERROR = "UNKNOWN_ERROR",
       }
+    }
+
+    namespace event {
+      function clearInstanceListeners(instance: any): void;
     }
   }
 
