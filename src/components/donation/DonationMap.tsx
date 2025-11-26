@@ -97,8 +97,8 @@ export function DonationMap({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSearchButton, setShowSearchButton] = useState(false);
-  const [mapMoved, setMapMoved] = useState(false);
   const initialCenterRef = useRef<google.maps.LatLngLiteral | null>(null);
+  const hasShownButtonRef = useRef(false);
 
   const visibleLocations = useMemo(
     () =>
@@ -152,10 +152,10 @@ export function DonationMap({
               currentCenter.lng()
             );
 
-            // Show button if moved more than 0.5 miles
-            if (movedDistance > 0.5 && !mapMoved) {
+            // Show button if moved more than 0.5 miles, or keep showing if already shown once
+            if (movedDistance > 0.5 || hasShownButtonRef.current) {
               setShowSearchButton(true);
-              setMapMoved(true);
+              hasShownButtonRef.current = true;
             }
           });
         }
@@ -237,8 +237,6 @@ export function DonationMap({
     const center = googleMap.getCenter();
     if (center) {
       initialCenterRef.current = { lat: center.lat(), lng: center.lng() };
-      setShowSearchButton(false);
-      setMapMoved(false);
       onSearchArea({ lat: center.lat(), lng: center.lng() });
     }
   };
