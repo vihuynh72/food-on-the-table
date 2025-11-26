@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { DonationMap, type DonationLocationType } from "@/components/donation/DonationMap";
 import { DonationLocationCard } from "@/components/donation/DonationLocationCard";
-import { DONATION_LOCATIONS } from "@/data/donationLocations";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "@/components/ui/use-toast";
-import { MapPin } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 
 const filterOptions: { label: string; value: DonationLocationType | "all" }[] = [
   { label: "All", value: "all" },
@@ -20,17 +20,27 @@ const filterOptions: { label: string; value: DonationLocationType | "all" }[] = 
 
 export default function Donate() {
   const [activeTypeFilter, setActiveTypeFilter] = useState<DonationLocationType | "all">("all");
-  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(DONATION_LOCATIONS[0]?.id);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>();
   const { position, status, errorMessage, requestLocation } = useUserLocation();
+  const { locations, isLoading: isSearching, error: searchError } = usePlacesSearch({
+    location: position,
+    enabled: status === "success",
+  });
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
 
   const visibleLocations = useMemo(
     () =>
       activeTypeFilter === "all"
-        ? DONATION_LOCATIONS
-        : DONATION_LOCATIONS.filter((loc) => loc.type === activeTypeFilter),
-    [activeTypeFilter],
+        ? locations
+        : locations.filter((loc) => loc.type === activeTypeFilter),
+    [activeTypeFilter, locations],
   );
+
+  useEffect(() => {
+    if (locations.length > 0 && !selectedLocationId) {
+      setSelectedLocationId(locations[0].id);
+    }
+  }, [locations, selectedLocationId]);
 
   useEffect(() => {
     if (status === "success") {
@@ -91,6 +101,11 @@ export default function Donate() {
             <MapPin className="h-4 w-4" /> Finding your location…
           </div>
         )}
+        {isSearching && (
+          <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Searching for nearby donation centers…
+          </div>
+        )}
         {(status === "denied" || status === "error") && (
           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
             We couldn’t access your location. You can still browse donation centers or search by city/ZIP.
@@ -100,11 +115,16 @@ export default function Donate() {
             {errorMessage && <span className="text-xs text-muted-foreground">{errorMessage}</span>}
           </div>
         )}
+        {searchError && (
+          <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            Error searching for locations: {searchError}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           <div ref={mapSectionRef} className="h-[400px] lg:h-[600px] rounded-xl overflow-hidden border shadow-md">
             <DonationMap
-              locations={DONATION_LOCATIONS}
+              locations={locations}
               activeTypeFilter={activeTypeFilter}
               selectedLocationId={selectedLocationId}
               onSelectLocation={handleSelectFromMap}
