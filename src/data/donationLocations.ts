@@ -13,6 +13,12 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     phone: "(555) 123-4567",
     website: "https://centralfoodbank.org",
     distanceLabel: "0.8 mi",
+    description: "Large food bank serving the downtown area with fresh and packaged foods.",
+    policy: {
+      accepts: ["Sealed packaged foods", "Canned goods within date", "Dry goods (rice, pasta, beans)", "Fresh produce in good condition", "Sealed dairy products"],
+      notAccepted: ["Opened packages", "Expired items", "Homemade foods", "Alcohol"],
+      notes: "Please call ahead for large donations. ID not required for drop-offs."
+    }
   },
   {
     id: "community-sharing-fridge",
@@ -26,6 +32,12 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     phone: "N/A",
     website: "https://communityfridge.org",
     distanceLabel: "1.2 mi",
+    description: "24/7 community fridge open to all. No questions asked.",
+    policy: {
+      accepts: ["Fresh produce", "Sealed packaged meals", "Dairy products", "Beverages", "Ready-to-eat foods"],
+      notAccepted: ["Expired items", "Opened containers", "Raw meat", "Items requiring preparation"],
+      notes: "Accessible anytime. Please ensure all items are sealed and within date."
+    }
   },
   {
     id: "hope-shelter-pantry",
@@ -39,6 +51,12 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     phone: "(555) 987-6543",
     website: "https://hopeshelter.org",
     distanceLabel: "2.1 mi",
+    description: "Shelter accepting food and hygiene donations for residents.",
+    policy: {
+      accepts: ["Sealed non-perishable foods", "Canned goods", "Hygiene products (soap, shampoo, toothpaste)", "Sealed blankets", "New socks and underwear"],
+      notAccepted: ["Perishable foods", "Used items", "Alcohol", "Medications"],
+      notes: "Ring buzzer at main entrance. Donations accepted during operating hours only."
+    }
   },
   {
     id: "school-district-pantry",
@@ -52,6 +70,12 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     phone: "(555) 456-7890",
     website: "https://schoolpantry.org",
     distanceLabel: "2.5 mi",
+    description: "School-based pantry serving families with children.",
+    policy: {
+      accepts: ["Kid-friendly snacks", "Sealed individual portions", "Canned fruits and vegetables", "Breakfast items (cereal, oatmeal)", "Peanut-free items preferred"],
+      notAccepted: ["Items containing peanuts", "Homemade foods", "Opened packages", "Expired items"],
+      notes: "Use back entrance during school hours. Peanut-free items strongly preferred due to allergies."
+    }
   },
   {
     id: "community-care-shelter",
@@ -65,5 +89,11 @@ export const DONATION_LOCATIONS: DonationLocation[] = [
     phone: "(555) 321-7890",
     website: "https://communitycare.org",
     distanceLabel: "3.1 mi",
+    description: "Community shelter providing meals and resources to those in need.",
+    policy: {
+      accepts: ["Non-perishable foods", "Hygiene products", "New clothing items", "Sealed blankets and bedding", "Individual serving sizes"],
+      notAccepted: ["Perishable items", "Used clothing", "Glass containers", "Bulk items without packaging"],
+      notes: "Donation drop-off at side door. Please label items clearly if repackaged."
+    }
   },
 ];

@@ -114,20 +114,34 @@ export function usePlacesSearch({
                       lng
                     );
 
+                    const locationType = inferLocationType(
+                      place.name || "",
+                      place.types || []
+                    );
+
+                    // Generate realistic accepts array based on type
+                    let accepts: string[];
+                    if (locationType === "community_fridge") {
+                      accepts = ["Fresh produce", "Packaged meals", "Dairy", "Drinks"];
+                    } else if (locationType === "shelter") {
+                      accepts = ["Sealed items", "Canned goods", "Hygiene products"];
+                    } else if (locationType === "pantry") {
+                      accepts = ["Sealed items", "Canned goods", "Dry goods"];
+                    } else {
+                      accepts = ["Sealed items", "Canned goods", "Dry goods", "Fresh produce"];
+                    }
+
                     allResults.push({
                       id: place.place_id,
                       name: place.name || "Unknown Location",
-                      type: inferLocationType(
-                        place.name || "",
-                        place.types || []
-                      ),
+                      type: locationType,
                       lat,
                       lng,
                       address: place.formatted_address || "Address not available",
-                      accepts: ["Sealed items", "Canned goods", "Fresh produce"],
+                      accepts,
                       hours: place.opening_hours?.weekday_text?.[0] || undefined,
-                      phone: undefined,
-                      website: undefined,
+                      phone: undefined, // Phone requires details request
+                      website: undefined, // Website requires details request
                       distanceLabel: `${distance.toFixed(1)} mi`,
                     });
                   }
