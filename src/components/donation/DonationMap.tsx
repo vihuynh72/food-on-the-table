@@ -61,9 +61,7 @@ export function DonationMap({
   onSelectLocation,
   userPosition,
 }: DonationMapProps) {
-  const apiKey =
-    (import.meta.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string | undefined) ||
-    (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined);
+  const apiKey = import.meta.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string | undefined;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);

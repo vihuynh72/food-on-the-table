@@ -62,12 +62,10 @@ This project is built with:
 
 ## Maps configuration
 
-To enable Google Maps on the Donate page, add a public API key to your environment. Create a `.env` file (or update your existing one) and set one of the following (both are supported):
+To enable Google Maps on the Donate page, add a public API key to your environment. Create a `.env` file (or update your existing one) and set:
 
 ```
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
-# or for Vite builds
-VITE_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
 ```
 
 Do not commit real keys. The page will show a helpful error message if the key is missing.
