@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigation } from "@/components/Navigation";
-import { DonationMap, type DonationLocationType } from "@/components/donation/DonationMap";
+import { DonationMap, type DonationLocationType, type DonationLocation } from "@/components/donation/DonationMap";
 import { DonationLocationCard } from "@/components/donation/DonationLocationCard";
+import { DonationDetailsSheet } from "@/components/donation/DonationDetailsSheet";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { MapPin, Loader2, Info } from "lucide-react";
 
 const filterOptions: { label: string; value: DonationLocationType | "all" }[] = [
@@ -21,8 +22,10 @@ const filterOptions: { label: string; value: DonationLocationType | "all" }[] = 
 export default function Donate() {
   const [activeTypeFilter, setActiveTypeFilter] = useState<DonationLocationType | "all">("all");
   const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isManualSearching, setIsManualSearching] = useState(false);
   const { position, status, errorMessage, requestLocation } = useUserLocation();
-  const { locations, isLoading: isSearching, error: searchError } = usePlacesSearch({
+  const { locations, isLoading: isSearching, error: searchError, searchArea } = usePlacesSearch({
     location: position,
     enabled: status === "success",
   });
@@ -48,8 +51,14 @@ export default function Donate() {
     }
   }, [status]);
 
+  const selectedLocation = useMemo(
+    () => locations.find((loc) => loc.id === selectedLocationId) || null,
+    [locations, selectedLocationId]
+  );
+
   const handleSelectFromCard = (id: string) => {
     setSelectedLocationId(id);
+    setDetailsOpen(true);
     if (window.innerWidth < 1024 && mapSectionRef.current) {
       mapSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -57,10 +66,38 @@ export default function Donate() {
 
   const handleSelectFromMap = (id: string) => {
     setSelectedLocationId(id);
+    setDetailsOpen(true);
     const cardElement = document.querySelector(`[data-location-id="${id}"]`);
     if (cardElement instanceof HTMLElement) {
       cardElement.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  const handleSearchArea = async (center: google.maps.LatLngLiteral) => {
+    setIsManualSearching(true);
+    try {
+      await searchArea(center);
+      toast({
+        title: "Search updated",
+        description: "Found donation centers in this area",
+      });
+    } catch (err) {
+      toast({
+        title: "Search failed",
+        description: "Could not search this area. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsManualSearching(false);
+    }
+  };
+
+  const handleDonate = () => {
+    toast({
+      title: "Donation logged",
+      description: `Thank you for donating to ${selectedLocation?.name}!`,
+    });
+    setDetailsOpen(false);
   };
 
   return (
@@ -134,6 +171,8 @@ export default function Donate() {
               selectedLocationId={selectedLocationId}
               onSelectLocation={handleSelectFromMap}
               userPosition={position as google.maps.LatLngLiteral | null}
+              onSearchArea={handleSearchArea}
+              isSearching={isManualSearching}
             />
           </div>
 
@@ -156,6 +195,13 @@ export default function Donate() {
             ))}
           </div>
         </div>
+
+        <DonationDetailsSheet
+          location={selectedLocation}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onDonate={handleDonate}
+        />
 
         <Card className="border-asparagus/20 bg-gradient-to-br from-card to-muted/30">
           <CardHeader>

@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export type DonationLocationType = "food_bank" | "community_fridge" | "pantry" | "shelter";
 
@@ -30,9 +32,25 @@ export interface DonationMapProps {
   selectedLocationId?: string;
   onSelectLocation?: (id: string) => void;
   userPosition?: google.maps.LatLngLiteral | null;
+  onSearchArea?: (center: google.maps.LatLngLiteral) => void;
+  isSearching?: boolean;
 }
 
 const DEFAULT_CENTER: google.maps.LatLngLiteral = { lat: 39.8283, lng: -98.5795 };
+
+function calculateMapDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3959; // Earth radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 let googleMapsPromise: Promise<typeof google.maps> | null = null;
 
@@ -68,6 +86,8 @@ export function DonationMap({
   selectedLocationId,
   onSelectLocation,
   userPosition,
+  onSearchArea,
+  isSearching = false,
 }: DonationMapProps) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -75,6 +95,9 @@ export function DonationMap({
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [showSearchButton, setShowSearchButton] = useState(false);
+  const [mapMoved, setMapMoved] = useState(false);
+  const initialCenterRef = useRef<google.maps.LatLngLiteral | null>(null);
 
   const visibleLocations = useMemo(
     () =>
@@ -98,6 +121,7 @@ export function DonationMap({
       .then((maps) => {
         if (!mapContainerRef.current || !isMounted) return;
         const center = userPosition ?? DEFAULT_CENTER;
+        initialCenterRef.current = center;
         mapRef.current = new maps.Map(mapContainerRef.current, {
           center,
           zoom: 12,
@@ -111,6 +135,30 @@ export function DonationMap({
             { featureType: "water", stylers: [{ color: "#c6d6c3" }] },
           ],
         });
+
+        // Listen for map movement
+        if (mapRef.current) {
+          const googleMap = mapRef.current;
+          googleMap.addListener("idle", () => {
+            if (!googleMap || !initialCenterRef.current) return;
+            const currentCenter = googleMap.getCenter();
+            if (!currentCenter) return;
+
+            const movedDistance = calculateMapDistance(
+              initialCenterRef.current.lat,
+              initialCenterRef.current.lng,
+              currentCenter.lat(),
+              currentCenter.lng()
+            );
+
+            // Show button if moved more than 0.5 miles
+            if (movedDistance > 0.5 && !mapMoved) {
+              setShowSearchButton(true);
+              setMapMoved(true);
+            }
+          });
+        }
+
         setIsReady(true);
       })
       .catch((err) => {
@@ -178,6 +226,18 @@ export function DonationMap({
     );
   }
 
+  const handleSearchArea = () => {
+    if (!mapRef.current || !onSearchArea) return;
+    const googleMap = mapRef.current;
+    const center = googleMap.getCenter();
+    if (center) {
+      initialCenterRef.current = { lat: center.lat(), lng: center.lng() };
+      setShowSearchButton(false);
+      setMapMoved(false);
+      onSearchArea({ lat: center.lat(), lng: center.lng() });
+    }
+  };
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border bg-background shadow-inner">
       {!isReady && (
@@ -185,6 +245,27 @@ export function DonationMap({
           Loading map...
         </div>
       )}
+      
+      {showSearchButton && onSearchArea && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
+          <Button
+            onClick={handleSearchArea}
+            disabled={isSearching}
+            className="shadow-lg hover:shadow-xl transition-all bg-woodland text-primary-foreground hover:bg-woodland/90"
+            size="sm"
+          >
+            {isSearching ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              "Search this area"
+            )}
+          </Button>
+        </div>
+      )}
+      
       <div
         ref={mapContainerRef}
         className="h-full w-full focus:outline-none"

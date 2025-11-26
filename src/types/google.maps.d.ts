@@ -22,6 +22,8 @@ declare global {
       setZoom(zoom: number): void;
       setCenter(latLng: LatLngLiteral): void;
       fitBounds(bounds: LatLngBounds, padding?: number | google.maps.Padding): void;
+      getCenter(): LatLng | undefined;
+      addListener(eventName: string, handler: (...args: unknown[]) => void): google.maps.MapsEventListener;
     }
 
     class Marker {

@@ -7,7 +7,11 @@ interface PlacesSearchParams {
   enabled?: boolean;
 }
 
-interface PlacesSearchResult {
+interface PlacesSearchActions {
+  searchArea: (center: google.maps.LatLngLiteral, searchRadius?: number) => Promise<void>;
+}
+
+interface PlacesSearchResult extends PlacesSearchActions {
   locations: DonationLocation[];
   isLoading: boolean;
   error: string | null;
@@ -51,124 +55,137 @@ function calculateDistance(
   return R * c;
 }
 
+async function performSearch(
+  searchLocation: google.maps.LatLngLiteral,
+  searchRadius: number
+): Promise<DonationLocation[]> {
+  if (!window.google?.maps?.places) {
+    throw new Error("Google Maps Places API not loaded");
+  }
+
+  const service = new window.google.maps.places.PlacesService(
+    document.createElement("div")
+  );
+
+  const allResults: DonationLocation[] = [];
+  const seenPlaceIds = new Set<string>();
+
+  for (const query of SEARCH_QUERIES) {
+    await new Promise<void>((resolve) => {
+      const request: google.maps.places.TextSearchRequest = {
+        query: query.keyword,
+        location: new window.google.maps.LatLng(searchLocation.lat, searchLocation.lng),
+        radius: searchRadius,
+      };
+
+      service.textSearch(request, (results, status) => {
+        if (
+          status === window.google.maps.places.PlacesServiceStatus.OK &&
+          results
+        ) {
+          results.slice(0, 5).forEach((place) => {
+            if (
+              place.place_id &&
+              !seenPlaceIds.has(place.place_id) &&
+              place.geometry?.location
+            ) {
+              seenPlaceIds.add(place.place_id);
+
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              const distance = calculateDistance(
+                searchLocation.lat,
+                searchLocation.lng,
+                lat,
+                lng
+              );
+
+              const locationType = inferLocationType(
+                place.name || "",
+                place.types || []
+              );
+
+              let accepts: string[];
+              if (locationType === "community_fridge") {
+                accepts = ["Fresh produce", "Packaged meals", "Dairy", "Drinks"];
+              } else if (locationType === "shelter") {
+                accepts = ["Sealed items", "Canned goods", "Hygiene products"];
+              } else if (locationType === "pantry") {
+                accepts = ["Sealed items", "Canned goods", "Dry goods"];
+              } else {
+                accepts = ["Sealed items", "Canned goods", "Dry goods", "Fresh produce"];
+              }
+
+              allResults.push({
+                id: place.place_id,
+                name: place.name || "Unknown Location",
+                type: locationType,
+                lat,
+                lng,
+                address: place.formatted_address || "Address not available",
+                accepts,
+                hours: place.opening_hours?.weekday_text?.[0] || undefined,
+                phone: undefined,
+                website: undefined,
+                distanceLabel: `${distance.toFixed(1)} mi`,
+              });
+            }
+          });
+        }
+        resolve();
+      });
+    });
+  }
+
+  allResults.sort((a, b) => {
+    const distA = parseFloat(a.distanceLabel?.replace(" mi", "") || "999");
+    const distB = parseFloat(b.distanceLabel?.replace(" mi", "") || "999");
+    return distA - distB;
+  });
+
+  return allResults;
+}
+
 export function usePlacesSearch({
   location,
-  radius = 8000, // ~5 miles in meters
+  radius = 8000,
   enabled = true,
 }: PlacesSearchParams): PlacesSearchResult {
   const [locations, setLocations] = useState<DonationLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const searchArea = async (
+    center: google.maps.LatLngLiteral,
+    searchRadius: number = radius
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const results = await performSearch(center, searchRadius);
+      setLocations(results);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to search places");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!location || !enabled) {
       return;
     }
 
-    // Wait for Google Maps to be fully loaded with Places API
     const checkAndSearch = async () => {
       if (!window.google?.maps?.places) {
-        // Google Maps not fully loaded yet, wait a bit
         setTimeout(checkAndSearch, 500);
         return;
       }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const service = new window.google.maps.places.PlacesService(
-          document.createElement("div")
-        );
-
-        const allResults: DonationLocation[] = [];
-        const seenPlaceIds = new Set<string>();
-
-        for (const query of SEARCH_QUERIES) {
-          await new Promise<void>((resolve) => {
-            const request: google.maps.places.TextSearchRequest = {
-              query: query.keyword,
-              location: new window.google.maps.LatLng(location.lat, location.lng),
-              radius,
-            };
-
-            service.textSearch(request, (results, status) => {
-              if (
-                status === window.google.maps.places.PlacesServiceStatus.OK &&
-                results
-              ) {
-                results.slice(0, 5).forEach((place) => {
-                  if (
-                    place.place_id &&
-                    !seenPlaceIds.has(place.place_id) &&
-                    place.geometry?.location
-                  ) {
-                    seenPlaceIds.add(place.place_id);
-
-                    const lat = place.geometry.location.lat();
-                    const lng = place.geometry.location.lng();
-                    const distance = calculateDistance(
-                      location.lat,
-                      location.lng,
-                      lat,
-                      lng
-                    );
-
-                    const locationType = inferLocationType(
-                      place.name || "",
-                      place.types || []
-                    );
-
-                    // Generate realistic accepts array based on type
-                    let accepts: string[];
-                    if (locationType === "community_fridge") {
-                      accepts = ["Fresh produce", "Packaged meals", "Dairy", "Drinks"];
-                    } else if (locationType === "shelter") {
-                      accepts = ["Sealed items", "Canned goods", "Hygiene products"];
-                    } else if (locationType === "pantry") {
-                      accepts = ["Sealed items", "Canned goods", "Dry goods"];
-                    } else {
-                      accepts = ["Sealed items", "Canned goods", "Dry goods", "Fresh produce"];
-                    }
-
-                    allResults.push({
-                      id: place.place_id,
-                      name: place.name || "Unknown Location",
-                      type: locationType,
-                      lat,
-                      lng,
-                      address: place.formatted_address || "Address not available",
-                      accepts,
-                      hours: place.opening_hours?.weekday_text?.[0] || undefined,
-                      phone: undefined, // Phone requires details request
-                      website: undefined, // Website requires details request
-                      distanceLabel: `${distance.toFixed(1)} mi`,
-                    });
-                  }
-                });
-              }
-              resolve();
-            });
-          });
-        }
-
-        // Sort by distance
-        allResults.sort((a, b) => {
-          const distA = parseFloat(a.distanceLabel?.replace(" mi", "") || "999");
-          const distB = parseFloat(b.distanceLabel?.replace(" mi", "") || "999");
-          return distA - distB;
-        });
-
-        setLocations(allResults);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to search places");
-      } finally {
-        setIsLoading(false);
-      }
+      await searchArea(location, radius);
     };
 
     checkAndSearch();
   }, [location, radius, enabled]);
 
-  return { locations, isLoading, error };
+  return { locations, isLoading, error, searchArea };
 }
