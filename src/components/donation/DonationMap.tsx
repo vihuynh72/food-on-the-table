@@ -30,14 +30,14 @@ let googleMapsPromise: Promise<typeof google.maps> | null = null;
 
 function loadGoogleMaps(apiKey: string) {
   if (typeof window === "undefined") return Promise.reject(new Error("No window object"));
-  if (window.google?.maps) {
+  if (window.google?.maps && 'places' in window.google.maps) {
     return Promise.resolve(window.google.maps);
   }
 
   if (!googleMapsPromise) {
     googleMapsPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.onload = () => {
         if (window.google?.maps) {

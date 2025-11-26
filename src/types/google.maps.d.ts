@@ -42,6 +42,12 @@ declare global {
       extend(point: LatLngLiteral): void;
     }
 
+    class LatLng {
+      constructor(lat: number, lng: number);
+      lat(): number;
+      lng(): number;
+    }
+
     interface MapsEventListener {
       remove(): void;
     }
@@ -70,6 +76,49 @@ declare global {
       fillOpacity?: number;
       strokeWeight?: number;
       strokeColor?: string;
+    }
+
+    namespace places {
+      class PlacesService {
+        constructor(attrContainer: HTMLElement);
+        textSearch(
+          request: TextSearchRequest,
+          callback: (
+            results: PlaceResult[] | null,
+            status: PlacesServiceStatus
+          ) => void
+        ): void;
+      }
+
+      interface TextSearchRequest {
+        query: string;
+        location?: LatLng;
+        radius?: number;
+      }
+
+      interface PlaceResult {
+        place_id?: string;
+        name?: string;
+        formatted_address?: string;
+        geometry?: PlaceGeometry;
+        types?: string[];
+        opening_hours?: {
+          weekday_text?: string[];
+        };
+      }
+
+      interface PlaceGeometry {
+        location: LatLng;
+      }
+
+      enum PlacesServiceStatus {
+        OK = "OK",
+        ZERO_RESULTS = "ZERO_RESULTS",
+        INVALID_REQUEST = "INVALID_REQUEST",
+        OVER_QUERY_LIMIT = "OVER_QUERY_LIMIT",
+        REQUEST_DENIED = "REQUEST_DENIED",
+        UNKNOWN_ERROR = "UNKNOWN_ERROR",
+      }
     }
   }
 
