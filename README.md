@@ -60,6 +60,16 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Maps configuration
+
+To enable Google Maps on the Donate page, add a public API key to your environment. Create a `.env` file (or update your existing one) and set:
+
+```
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
+```
+
+Do not commit real keys. The page will show a helpful error message if the key is missing.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/256dcf0c-9a58-4242-a3e6-c31c27080e3a) and click on Share -> Publish.
