@@ -163,6 +163,7 @@ export default function Donate() {
       }
 
       await fetchDetailsForLocation(location);
+      setDetailsOpen(true);
 
       if (scrollTarget === "map" && window.innerWidth < 1024 && mapSectionRef.current) {
         mapSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -281,6 +282,8 @@ export default function Donate() {
                 selectedLocationId={selectedLocationId}
                 onSelectLocation={handleSelectFromMap}
                 userPosition={position as google.maps.LatLngLiteral | null}
+                onSearchArea={handleSearchArea}
+                isSearching={isManualSearching}
               />
             </div>
 
