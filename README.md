@@ -70,6 +70,22 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<your_google_maps_api_key>
 
 Do not commit real keys. The page will show a helpful error message if the key is missing.
 
+## Place details lookups
+
+The Donate page can fetch richer location details (phone, website, hours) when you select a location. Configure a server-side API key that your serverless function can use to call Google Places Details, Yelp Fusion, or a similar provider:
+
+```
+PLACE_DETAILS_API_KEY=<your_place_details_api_key>
+```
+
+Optionally, you can point the client at a custom endpoint (defaults to `/api/place-details`):
+
+```
+VITE_PLACE_DETAILS_ENDPOINT=/api/place-details
+```
+
+If the key is missing or the provider call fails, the UI falls back to the static location data and shows a helpful warning.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/256dcf0c-9a58-4242-a3e6-c31c27080e3a) and click on Share -> Publish.

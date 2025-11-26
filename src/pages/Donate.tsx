@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { DonationMap, type DonationLocationType, type DonationLocation } from "@/components/donation/DonationMap";
 import { DonationLocationCard } from "@/components/donation/DonationLocationCard";
 import { DonationDetailsSheet } from "@/components/donation/DonationDetailsSheet";
+import { DONATION_LOCATIONS } from "@/data/donationLocations";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { toast } from "@/hooks/use-toast";
-import { MapPin, Loader2, Info } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { MapPin, Info, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { buildFallbackDetails, fetchPlaceDetails, type PlaceDetailsResponse } from "@/lib/placeDetailsClient";
+import { fetchDonationLocationDetails, type DonationLocationDetails } from "@/lib/donationLocationDetails";
 
 const filterOptions: { label: string; value: DonationLocationType | "all" }[] = [
   { label: "All", value: "all" },
@@ -21,29 +25,94 @@ const filterOptions: { label: string; value: DonationLocationType | "all" }[] = 
 
 export default function Donate() {
   const [activeTypeFilter, setActiveTypeFilter] = useState<DonationLocationType | "all">("all");
-  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>();
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | undefined>(undefined);
+  const [selectedLocationDetails, setSelectedLocationDetails] = useState<PlaceDetailsResponse | null>(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isManualSearching, setIsManualSearching] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [locationDetails, setLocationDetails] = useState<Record<string, DonationLocationDetails | null>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
   const { position, status, errorMessage, requestLocation } = useUserLocation();
   const { locations, isLoading: isSearching, error: searchError, searchArea } = usePlacesSearch({
     location: position,
     enabled: status === "success",
   });
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient();
+
+  // Use Places search results if available, otherwise fall back to static data
+  const effectiveLocations = useMemo(
+    () => (locations.length > 0 ? locations : DONATION_LOCATIONS),
+    [locations],
+  );
 
   const visibleLocations = useMemo(
     () =>
       activeTypeFilter === "all"
-        ? locations
-        : locations.filter((loc) => loc.type === activeTypeFilter),
-    [activeTypeFilter, locations],
+        ? effectiveLocations
+        : effectiveLocations.filter((loc) => loc.type === activeTypeFilter),
+    [activeTypeFilter, effectiveLocations],
+  );
+
+  const selectedLocation = useMemo(
+    () => effectiveLocations.find((loc) => loc.id === selectedLocationId),
+    [effectiveLocations, selectedLocationId],
+  );
+
+  const fetchDetailsForLocation = useCallback(
+    async (location: DonationLocation) => {
+      const cached = queryClient.getQueryData<PlaceDetailsResponse>(["place-details", location.id]);
+      if (cached) {
+        setSelectedLocationDetails(cached);
+        return;
+      }
+
+      setIsFetchingDetails(true);
+      try {
+        const details = await queryClient.fetchQuery({
+          queryKey: ["place-details", location.id],
+          queryFn: () =>
+            fetchPlaceDetails({
+              placeId: location.placeId,
+              name: location.name,
+              lat: location.lat,
+              lng: location.lng,
+              address: location.address,
+            }),
+          staleTime: 1000 * 60 * 60,
+        });
+        setSelectedLocationDetails(details);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to load place details";
+        const fallback = buildFallbackDetails(
+          {
+            placeId: location.placeId,
+            name: location.name,
+            lat: location.lat,
+            lng: location.lng,
+            address: location.address,
+          },
+          message,
+        );
+        queryClient.setQueryData(["place-details", location.id], fallback);
+        setSelectedLocationDetails(fallback);
+        toast({
+          title: "Using basic location info",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsFetchingDetails(false);
+      }
+    },
+    [queryClient],
   );
 
   useEffect(() => {
-    if (locations.length > 0 && !selectedLocationId) {
-      setSelectedLocationId(locations[0].id);
+    if (effectiveLocations.length > 0 && !selectedLocationId) {
+      setSelectedLocationId(effectiveLocations[0].id);
     }
-  }, [locations, selectedLocationId]);
+  }, [effectiveLocations, selectedLocationId]);
 
   useEffect(() => {
     if (status === "success") {
@@ -51,27 +120,67 @@ export default function Donate() {
     }
   }, [status]);
 
-  const selectedLocation = useMemo(
-    () => locations.find((loc) => loc.id === selectedLocationId) || null,
-    [locations, selectedLocationId]
+  // Fetch details for visible location cards
+  useEffect(() => {
+    visibleLocations.forEach((location) => {
+      if (locationDetails[location.id] || loadingDetails.has(location.id)) return;
+
+      setLoadingDetails((prev) => new Set(prev).add(location.id));
+
+      // Pass both ID and location object so we can generate fallback details
+      fetchDonationLocationDetails(location.id, location)
+        .then((details) => {
+          setLocationDetails((prev) => ({ ...prev, [location.id]: details }));
+        })
+        .finally(() => {
+          setLoadingDetails((prev) => {
+            const next = new Set(prev);
+            next.delete(location.id);
+            return next;
+          });
+        });
+    });
+  }, [locationDetails, loadingDetails, visibleLocations]);
+
+  useEffect(() => {
+    const firstLocation = effectiveLocations[0];
+    if (firstLocation) {
+      void fetchDetailsForLocation(firstLocation);
+    }
+  }, [effectiveLocations, fetchDetailsForLocation]);
+
+  const handleLocationSelection = useCallback(
+    async (id: string, scrollTarget?: "map" | "card") => {
+      setSelectedLocationId(id);
+      const location = effectiveLocations.find((loc) => loc.id === id);
+      if (!location) {
+        toast({
+          title: "Location unavailable",
+          description: "We couldn't find details for that marker.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchDetailsForLocation(location);
+
+      if (scrollTarget === "map" && window.innerWidth < 1024 && mapSectionRef.current) {
+        mapSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      if (scrollTarget === "card") {
+        const cardElement = document.querySelector(`[data-location-id="${id}"]`);
+        if (cardElement instanceof HTMLElement) {
+          cardElement.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+    },
+    [effectiveLocations, fetchDetailsForLocation],
   );
 
-  const handleSelectFromCard = (id: string) => {
-    setSelectedLocationId(id);
-    setDetailsOpen(true);
-    if (window.innerWidth < 1024 && mapSectionRef.current) {
-      mapSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
+  const handleSelectFromCard = (id: string) => handleLocationSelection(id, "map");
 
-  const handleSelectFromMap = (id: string) => {
-    setSelectedLocationId(id);
-    setDetailsOpen(true);
-    const cardElement = document.querySelector(`[data-location-id="${id}"]`);
-    if (cardElement instanceof HTMLElement) {
-      cardElement.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
+  const handleSelectFromMap = (id: string) => handleLocationSelection(id, "card");
 
   const handleSearchArea = async (center: google.maps.LatLngLiteral) => {
     setIsManualSearching(true);
@@ -164,16 +273,67 @@ export default function Donate() {
         )}
 
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <div ref={mapSectionRef} className="h-[400px] lg:h-[600px] rounded-xl overflow-hidden border shadow-md">
-            <DonationMap
-              locations={locations}
-              activeTypeFilter={activeTypeFilter}
-              selectedLocationId={selectedLocationId}
-              onSelectLocation={handleSelectFromMap}
-              userPosition={position as google.maps.LatLngLiteral | null}
-              onSearchArea={handleSearchArea}
-              isSearching={isManualSearching}
-            />
+          <div className="space-y-4" ref={mapSectionRef}>
+            <div className="h-[400px] lg:h-[520px] rounded-xl overflow-hidden border shadow-md">
+              <DonationMap
+                locations={visibleLocations}
+                activeTypeFilter={activeTypeFilter}
+                selectedLocationId={selectedLocationId}
+                onSelectLocation={handleSelectFromMap}
+                userPosition={position as google.maps.LatLngLiteral | null}
+              />
+            </div>
+
+            <Card className="border-asparagus/20 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-woodland">Location details</CardTitle>
+                <CardDescription>
+                  We fetch details from your places provider and cache them to speed up future lookups.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                {selectedLocationDetails ? (
+                  <>
+                    <p className="text-base font-semibold text-woodland">
+                      {selectedLocationDetails.name || selectedLocation?.name}
+                    </p>
+                    <p>{selectedLocationDetails.formattedAddress || selectedLocation?.address}</p>
+                    {selectedLocationDetails.formattedPhoneNumber && (
+                      <p className="text-sm">Phone: {selectedLocationDetails.formattedPhoneNumber}</p>
+                    )}
+                    {selectedLocationDetails.websiteUri && (
+                      <a
+                        href={selectedLocationDetails.websiteUri}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-woodland underline underline-offset-4"
+                      >
+                        Visit website
+                      </a>
+                    )}
+                    {selectedLocationDetails.openingHoursText?.length ? (
+                      <ul className="list-disc list-inside space-y-1">
+                        {selectedLocationDetails.openingHoursText.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {selectedLocationDetails.rating && (
+                      <p>Rating: {selectedLocationDetails.rating.toFixed(1)} / 5</p>
+                    )}
+                    <p className="text-xs">Source: {selectedLocationDetails.source}</p>
+                    {selectedLocationDetails.warning && (
+                      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                        {selectedLocationDetails.warning}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm">Choose a location to view its latest details.</p>
+                )}
+                {isFetchingDetails && <p className="text-xs">Loading details…</p>}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-4 lg:max-h-[600px] lg:overflow-y-auto">
@@ -190,6 +350,8 @@ export default function Donate() {
                 key={location.id}
                 location={location}
                 selected={selectedLocationId === location.id}
+                details={locationDetails[location.id]}
+                loadingDetails={loadingDetails.has(location.id)}
                 onSelect={handleSelectFromCard}
               />
             ))}
