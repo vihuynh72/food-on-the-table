@@ -33,8 +33,9 @@ export interface DonationMapProps {
   selectedLocationId?: string;
   onSelectLocation?: (id: string) => Promise<void> | void;
   userPosition?: google.maps.LatLngLiteral | null;
-  onSearchArea?: (center: google.maps.LatLngLiteral) => void;
+  onSearchArea?: (center: google.maps.LatLngLiteral, searchRadiusMeters?: number) => void;
   isSearching?: boolean;
+  searchRadiusMeters?: number;
 }
 
 const DEFAULT_CENTER: google.maps.LatLngLiteral = { lat: 39.8283, lng: -98.5795 };
@@ -93,6 +94,7 @@ export function DonationMap({
   userPosition,
   onSearchArea,
   isSearching = false,
+  searchRadiusMeters,
 }: DonationMapProps) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -223,7 +225,9 @@ export function DonationMap({
       zIndex: 1000,
     });
 
-    // Create radius circle (5 miles radius)
+    const radius = searchRadiusMeters ?? 8046.72;
+
+    // Create radius circle
     userCircleRef.current = new maps.Circle({
       strokeColor: "#4285F4",
       strokeOpacity: 0.4,
@@ -232,12 +236,18 @@ export function DonationMap({
       fillOpacity: 0.1,
       map: mapRef.current,
       center: userPosition,
-      radius: 8046.72, // 5 miles in meters
+      radius,
     });
 
     mapRef.current.panTo(userPosition);
     mapRef.current.setZoom(13);
-  }, [userPosition, isReady]);
+  }, [userPosition, isReady, searchRadiusMeters]);
+
+  useEffect(() => {
+    if (userCircleRef.current && typeof searchRadiusMeters === "number") {
+      userCircleRef.current.setRadius(searchRadiusMeters);
+    }
+  }, [searchRadiusMeters]);
 
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
@@ -302,7 +312,7 @@ export function DonationMap({
     const center = googleMap.getCenter();
     if (center) {
       initialCenterRef.current = { lat: center.lat(), lng: center.lng() };
-      onSearchArea({ lat: center.lat(), lng: center.lng() });
+      onSearchArea({ lat: center.lat(), lng: center.lng() }, searchRadiusMeters);
     }
   };
 
