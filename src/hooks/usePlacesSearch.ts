@@ -3,7 +3,7 @@ import type { DonationLocation, DonationLocationType } from "@/components/donati
 
 interface PlacesSearchParams {
   location: google.maps.LatLngLiteral | null;
-  radius?: number;
+  radius?: number; // meters
   enabled?: boolean;
 }
 
@@ -155,12 +155,14 @@ async function performSearch(
   const allResults: DonationLocation[] = [];
   const seenPlaceIds = new Set<string>();
 
+  const effectiveRadius = Math.min(searchRadius, 50000); // Google Text Search max radius is 50km (~31 miles)
+
   for (const query of SEARCH_QUERIES) {
     await new Promise<void>((resolve) => {
       const request: google.maps.places.TextSearchRequest = {
         query: query.keyword,
         location: new window.google.maps.LatLng(searchLocation.lat, searchLocation.lng),
-        radius: searchRadius,
+        radius: effectiveRadius,
       };
 
       service.textSearch(request, (results, status) => {
@@ -235,9 +237,11 @@ async function performSearch(
   return allResults;
 }
 
+const DEFAULT_RADIUS_METERS = 1609.34 * 5; // 5 miles
+
 export function usePlacesSearch({
   location,
-  radius = 8000,
+  radius = DEFAULT_RADIUS_METERS,
   enabled = true,
 }: PlacesSearchParams): PlacesSearchResult {
   const [locations, setLocations] = useState<DonationLocation[]>([]);

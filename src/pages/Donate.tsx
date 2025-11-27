@@ -14,6 +14,10 @@ import { MapPin, Info, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { buildFallbackDetails, fetchPlaceDetails, type PlaceDetailsResponse } from "@/lib/placeDetailsClient";
 import { fetchDonationLocationDetails, type DonationLocationDetails } from "@/lib/donationLocationDetails";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSliderWithInput } from "@/components/hooks/use-slider-with-input";
 
 const filterOptions: { label: string; value: DonationLocationType | "all" }[] = [
   { label: "All", value: "all" },
@@ -22,6 +26,11 @@ const filterOptions: { label: string; value: DonationLocationType | "all" }[] = 
   { label: "Pantry", value: "pantry" },
   { label: "Shelter", value: "shelter" },
 ];
+
+const MIN_RADIUS_MILES = 1;
+const MAX_RADIUS_MILES = 50;
+const DEFAULT_RADIUS_MILES = 10;
+const MILES_TO_METERS = 1609.34;
 
 export default function Donate() {
   const [activeTypeFilter, setActiveTypeFilter] = useState<DonationLocationType | "all">("all");
@@ -32,9 +41,25 @@ export default function Donate() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [locationDetails, setLocationDetails] = useState<Record<string, DonationLocationDetails | null>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
+  const {
+    sliderValue: distanceSliderValue,
+    inputValues: distanceInputValues,
+    validateAndUpdateValue: validateDistanceInput,
+    handleInputChange: handleDistanceInputChange,
+    handleSliderChange: handleDistanceSliderChange,
+  } = useSliderWithInput({
+    minValue: MIN_RADIUS_MILES,
+    maxValue: MAX_RADIUS_MILES,
+    initialValue: [DEFAULT_RADIUS_MILES],
+    defaultValue: [DEFAULT_RADIUS_MILES],
+  });
+  const radiusMiles = distanceSliderValue[0] ?? DEFAULT_RADIUS_MILES;
+  const radiusInputValue = distanceInputValues[0] ?? radiusMiles.toString();
+  const radiusMeters = useMemo(() => radiusMiles * MILES_TO_METERS, [radiusMiles]);
   const { position, status, errorMessage, requestLocation } = useUserLocation();
   const { locations, isLoading: isSearching, error: searchError, searchArea } = usePlacesSearch({
     location: position,
+    radius: radiusMeters,
     enabled: status === "success",
   });
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
@@ -167,40 +192,46 @@ export default function Donate() {
 
   const handleSelectFromMap = (id: string) => handleLocationSelection(id, "card");
 
-  const handleSearchArea = async (center: google.maps.LatLngLiteral) => {
-    setIsManualSearching(true);
-    try {
-      await searchArea(center);
-      toast({
-        title: "Search updated",
-        description: "Found donation centers in this area",
-      });
-    } catch (err) {
-      toast({
-        title: "Search failed",
-        description: "Could not search this area. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsManualSearching(false);
-    }
-  };
+  const handleSearchArea = useCallback(
+    async (center: google.maps.LatLngLiteral, overrideRadius?: number) => {
+      setIsManualSearching(true);
+      try {
+        await searchArea(center, overrideRadius ?? radiusMeters);
+        toast({
+          title: "Search updated",
+          description: "Found donation centers in this area",
+        });
+      } catch (err) {
+        toast({
+          title: "Search failed",
+          description: "Could not search this area. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsManualSearching(false);
+      }
+    },
+    [radiusMeters, searchArea],
+  );
 
-  const handleLocationSelect = async (location: { lat: number; lng: number; address: string }) => {
-    const center = { lat: location.lat, lng: location.lng };
-    setIsManualSearching(true);
-    try {
-      await searchArea(center);
-    } catch (err) {
-      toast({
-        title: "Search failed",
-        description: "Could not search this location. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsManualSearching(false);
-    }
-  };
+  const handleLocationSelect = useCallback(
+    async (location: { lat: number; lng: number; address: string }) => {
+      const center = { lat: location.lat, lng: location.lng };
+      setIsManualSearching(true);
+      try {
+        await searchArea(center, radiusMeters);
+      } catch (err) {
+        toast({
+          title: "Search failed",
+          description: "Could not search this location. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsManualSearching(false);
+      }
+    },
+    [radiusMeters, searchArea],
+  );
 
   const handleDonate = () => {
     toast({
@@ -276,6 +307,53 @@ export default function Donate() {
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           <div className="space-y-4" ref={mapSectionRef}>
             <LocationSearchBar onLocationSelect={handleLocationSelect} />
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <Label htmlFor="distance-slider" className="text-woodland">
+                    Search radius
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Adjust to widen or narrow donation center results (miles)
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-woodland">{radiusMiles.toFixed(0)} mi</span>
+              </div>
+              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <Slider
+                  id="distance-slider"
+                  className="grow"
+                  value={distanceSliderValue}
+                  min={MIN_RADIUS_MILES}
+                  max={MAX_RADIUS_MILES}
+                  step={1}
+                  onValueChange={handleDistanceSliderChange}
+                  aria-label="Search radius in miles"
+                  showTooltip
+                  tooltipContent={(value) => `${value} mi`}
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="h-9 w-20"
+                    type="text"
+                    inputMode="decimal"
+                    value={radiusInputValue}
+                    onChange={(e) => handleDistanceInputChange(e, 0)}
+                    onBlur={() => validateDistanceInput(radiusInputValue, 0)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        validateDistanceInput(radiusInputValue, 0);
+                      }
+                    }}
+                    aria-label="Enter search radius in miles"
+                  />
+                  <span className="text-xs text-muted-foreground">mi</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Google Places limits each search to roughly 31 miles. Larger selections will pull the widest area allowed.
+              </p>
+            </div>
             
             <div className="h-[400px] lg:h-[520px] rounded-xl overflow-hidden border shadow-md">
               <DonationMap
@@ -286,6 +364,7 @@ export default function Donate() {
                 userPosition={position as google.maps.LatLngLiteral | null}
                 onSearchArea={handleSearchArea}
                 isSearching={isManualSearching}
+                searchRadiusMeters={radiusMeters}
               />
             </div>
           </div>
