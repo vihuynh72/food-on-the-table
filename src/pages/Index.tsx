@@ -8,7 +8,8 @@ import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 import { Button } from "@/components/ui/button";
 import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 
 const mockFoodItems = [
   {
@@ -49,12 +50,31 @@ const mockFoodItems = [
   },
 ];
 
+const FloatingIcon = ({ icon: Icon, className, delay }: any) => (
+  <motion.div
+    animate={{ y: [0, -15, 0], rotate: [0, 5, -5, 0] }}
+    transition={{ duration: 5, delay, repeat: Infinity, ease: "easeInOut" }}
+    className={`absolute pointer-events-none opacity-20 ${className}`}
+  >
+    <Icon className="w-16 h-16 text-woodland" />
+  </motion.div>
+);
+
 export default function Index() {
   const navigate = useNavigate();
   const [showTriageModal, setShowTriageModal] = useState(false);
 
   const handleTriageClick = () => {
     setShowTriageModal(true);
+  };
+
+  const handleQuizComplete = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#8fa664", "#c4d9a8", "#f5e6c8", "#e8d4c4", "#9ab86e"] // Forest Moth palette
+    });
   };
 
   return (
@@ -68,12 +88,19 @@ export default function Index() {
           swirl={0.5}
           speed={0.25}
           minHeight="min-h-[420px] md:min-h-[480px]"
+          className="relative overflow-hidden"
         >
+          {/* Floating Icons */}
+          <FloatingIcon icon={Apple} className="top-10 left-10" delay={0} />
+          <FloatingIcon icon={Carrot} className="bottom-20 right-10" delay={1} />
+          <FloatingIcon icon={Milk} className="top-20 right-20" delay={2} />
+          <FloatingIcon icon={Egg} className="bottom-10 left-20" delay={3} />
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="text-center"
+            className="text-center relative z-10"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -112,13 +139,17 @@ export default function Index() {
         </HeroMeshGradient>
 
         {/* Triage Quiz Modal */}
-        <TriageQuiz open={showTriageModal} onOpenChange={setShowTriageModal} />
+        <TriageQuiz 
+          open={showTriageModal} 
+          onOpenChange={setShowTriageModal} 
+          onComplete={handleQuizComplete}
+        />
 
         {/* Use This Next Section */}
-        <section className="space-y-6 animate-fade-in">
+        <section className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-foreground">Use This Next</h2>
+              <h2 className="text-foreground text-2xl font-bold">Use This Next</h2>
               <p className="text-muted-foreground mt-2">
                 Items that need your attention soon
               </p>
@@ -132,32 +163,47 @@ export default function Index() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+          >
             {mockFoodItems.map((item) => (
-              <FoodItemCard
+              <motion.div
                 key={item.id}
-                name={item.name}
-                quantity={item.quantity}
-                status={item.status}
-                statusText={item.statusText}
-                primaryAction={{
-                  label: item.primaryAction,
-                  onClick: () => console.log(`Action: ${item.primaryAction} for ${item.name}`),
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
                 }}
-                secondaryActions={[
-                  { label: "Open Triage", onClick: () => setShowTriageModal(true) },
-                  { label: "Edit Details", onClick: () => console.log("Edit") },
-                  { label: "Mark as Used", onClick: () => console.log("Used") },
-                ]}
-                icon={item.icon}
-              />
+              >
+                <FoodItemCard
+                  name={item.name}
+                  quantity={item.quantity}
+                  status={item.status}
+                  statusText={item.statusText}
+                  primaryAction={{
+                    label: item.primaryAction,
+                    onClick: () => console.log(`Action: ${item.primaryAction} for ${item.name}`),
+                  }}
+                  secondaryActions={[
+                    { label: "Open Triage", onClick: () => setShowTriageModal(true) },
+                    { label: "Edit Details", onClick: () => console.log("Edit") },
+                    { label: "Mark as Used", onClick: () => console.log("Used") },
+                  ]}
+                  icon={item.icon}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
 
         {/* Quick Actions */}
-        <section className="space-y-6 animate-fade-in">
-          <h2 className="text-foreground">Quick Actions</h2>
+        <section className="space-y-6">
+          <h2 className="text-foreground text-2xl font-bold">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <QuickActionCard
               title="Add Food"
@@ -183,8 +229,8 @@ export default function Index() {
         </section>
 
         {/* Impact Snapshot */}
-        <section className="space-y-6 animate-fade-in">
-          <h2 className="text-foreground">Your Impact This Month</h2>
+        <section className="space-y-6">
+          <h2 className="text-foreground text-2xl font-bold">Your Impact This Month</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard
               title="Food Saved"
