@@ -4,9 +4,11 @@ import { FoodItemCard } from "@/components/FoodItemCard";
 import { StatCard } from "@/components/StatCard";
 import { QuickActionCard } from "@/components/QuickActionCard";
 import { TriageQuiz } from "@/components/TriageQuiz";
+import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 import { Button } from "@/components/ui/button";
-import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus } from "lucide-react";
+import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const mockFoodItems = [
   {
@@ -60,23 +62,54 @@ export default function Index() {
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 space-y-12">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-3xl p-8 md:p-12 lg:p-16 bg-gradient-to-br from-raffia to-pine-glade animate-fade-in">
-          <div className="relative z-10 max-w-3xl">
-            <h1 className="mb-4 text-foreground">Got Food? Decide Before It Spoils</h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
+        {/* Hero Section with Animated Mesh Gradient */}
+        <HeroMeshGradient
+          distortion={0.7}
+          swirl={0.5}
+          speed={0.25}
+          minHeight="min-h-[420px] md:min-h-[480px]"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="text-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 mb-6"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground/80">Smart Food Decisions</span>
+            </motion.div>
+            
+            <h1 className="font-bold text-foreground text-balance text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
+              Got Food?{" "}
+              <span className="text-primary">Decide Before It Spoils</span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-foreground/80 text-pretty max-w-2xl mx-auto leading-relaxed mb-8">
               Take our quick quiz to find the best way to use your food—donate, share, cook, or compost.
               Every decision saves food and reduces waste.
             </p>
-            <Button
-              onClick={handleTriageClick}
-              size="lg"
-              className="bg-primary hover:bg-asparagus text-primary-foreground transition-all duration-300 hover-lift text-lg px-8 py-6"
+            
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
             >
-              I have food — What should I do?
-            </Button>
-          </div>
-        </section>
+              <Button
+                onClick={handleTriageClick}
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+              >
+                I have food — What should I do?
+              </Button>
+            </motion.div>
+          </motion.div>
+        </HeroMeshGradient>
 
         {/* Triage Quiz Modal */}
         <TriageQuiz open={showTriageModal} onOpenChange={setShowTriageModal} />
