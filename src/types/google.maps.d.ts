@@ -43,6 +43,8 @@ declare global {
     class Circle {
       constructor(opts?: CircleOptions);
       setMap(map: Map | null): void;
+      setRadius(radius: number): void;
+      setCenter(center: LatLngLiteral): void;
     }
 
     interface CircleOptions {
