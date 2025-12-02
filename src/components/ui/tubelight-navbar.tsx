@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Link, useLocation } from "react-router-dom"
 import { LucideIcon } from "lucide-react"
@@ -29,19 +29,8 @@ export function NavBar({ items, className }: NavBarProps) {
   const activeIndex = items.findIndex(item => item.url === location.pathname)
   const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
-      updateIndicator()
-    }
-
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
-
   // Update indicator position when active item changes
-  const updateIndicator = () => {
+  const updateIndicator = useCallback(() => {
     const activeElement = itemRefs.current[safeActiveIndex]
     const navElement = navRef.current
     
@@ -59,19 +48,24 @@ export function NavBar({ items, className }: NavBarProps) {
         isFirstRender.current = false
       }
     }
-  }
+  }, [safeActiveIndex])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+      updateIndicator()
+    }
+
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [updateIndicator])
 
   useEffect(() => {
     // Small delay to ensure DOM is ready
     const timer = setTimeout(updateIndicator, 10)
     return () => clearTimeout(timer)
-  }, [safeActiveIndex, location.pathname])
-
-  // Also update on window resize
-  useEffect(() => {
-    window.addEventListener("resize", updateIndicator)
-    return () => window.removeEventListener("resize", updateIndicator)
-  }, [safeActiveIndex])
+  }, [safeActiveIndex, location.pathname, updateIndicator])
 
   return (
     <div

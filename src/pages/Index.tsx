@@ -6,7 +6,7 @@ import { QuickActionCard } from "@/components/QuickActionCard";
 import { TriageQuiz } from "@/components/TriageQuiz";
 import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 import { Button } from "@/components/ui/button";
-import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus, Sparkles } from "lucide-react";
+import { Apple, Carrot, Milk, Egg, Users, MapPin, Trophy, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -50,7 +50,13 @@ const mockFoodItems = [
   },
 ];
 
-const FloatingIcon = ({ icon: Icon, className, delay }: any) => (
+interface FloatingIconProps {
+  icon: LucideIcon;
+  className?: string;
+  delay: number;
+}
+
+const FloatingIcon = ({ icon: Icon, className, delay }: FloatingIconProps) => (
   <motion.div
     animate={{ y: [0, -15, 0], rotate: [0, 5, -5, 0] }}
     transition={{ duration: 5, delay, repeat: Infinity, ease: "easeInOut" }}
