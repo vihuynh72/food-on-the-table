@@ -62,6 +62,51 @@ export type Database = {
         }
         Relationships: []
       }
+      food_items: {
+        Row: {
+          barcode: string | null
+          category: string | null
+          created_at: string | null
+          expiry_date: string
+          id: string
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          quantity: string | null
+          storage: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string | null
+          created_at?: string | null
+          expiry_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          quantity?: string | null
+          storage?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string | null
+          created_at?: string | null
+          expiry_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          quantity?: string | null
+          storage?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

@@ -1,128 +1,182 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreVertical, Apple, Carrot, Milk, Egg, Refrigerator, Snowflake, Package as PackageIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Search, Refrigerator, Snowflake, Package as PackageIcon, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFoodInventory, FoodItem } from "@/hooks/useFoodInventory";
+import { FoodItemCard } from "@/components/food/FoodItemCard";
+import { AddFoodModal } from "@/components/food/AddFoodModal";
+import { EditFoodModal } from "@/components/food/EditFoodModal";
+import { RecipeSuggestionsModal } from "@/components/food/RecipeSuggestionsModal";
+import { DeleteConfirmDialog } from "@/components/food/DeleteConfirmDialog";
+import { ExpiringItemsBanner } from "@/components/food/ExpiringItemsBanner";
+import { toast } from "@/hooks/use-toast";
 
-const mockInventory = [
-  {
-    id: 1,
-    name: "Fresh Strawberries",
-    quantity: "250g",
-    storage: "Fridge",
-    daysLeft: 1,
-    icon: <Apple className="h-6 w-6" />,
-  },
-  {
-    id: 2,
-    name: "Organic Carrots",
-    quantity: "1kg",
-    storage: "Fridge",
-    daysLeft: 2,
-    icon: <Carrot className="h-6 w-6" />,
-  },
-  {
-    id: 3,
-    name: "Milk (Unopened)",
-    quantity: "1L",
-    storage: "Fridge",
-    daysLeft: 3,
-    icon: <Milk className="h-6 w-6" />,
-  },
-  {
-    id: 4,
-    name: "Eggs",
-    quantity: "6 pack",
-    storage: "Fridge",
-    daysLeft: 7,
-    icon: <Egg className="h-6 w-6" />,
-  },
-];
+type StorageFilter = "all" | "fridge" | "freezer" | "pantry";
+type StatusFilter = "all" | "expiring" | "expired";
 
 const storageFilters = [
-  { label: "All", value: "all", icon: PackageIcon },
-  { label: "Fridge", value: "fridge", icon: Refrigerator },
-  { label: "Freezer", value: "freezer", icon: Snowflake },
-  { label: "Pantry", value: "pantry", icon: PackageIcon },
+  { label: "All", value: "all" as const, icon: PackageIcon },
+  { label: "Fridge", value: "fridge" as const, icon: Refrigerator },
+  { label: "Freezer", value: "freezer" as const, icon: Snowflake },
+  { label: "Pantry", value: "pantry" as const, icon: PackageIcon },
+];
+
+const statusFilters = [
+  { label: "All Items", value: "all" as const },
+  { label: "Expiring Soon", value: "expiring" as const },
+  { label: "Expired", value: "expired" as const },
 ];
 
 export default function MyFood() {
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const {
+    loading,
+    addItem,
+    updateItem,
+    deleteItem,
+    freezeItem,
+    getItemsWithDaysLeft,
+    getExpiringSoonItems,
+    getExpiredItems,
+  } = useFoodInventory();
+
+  const [storageFilter, setStorageFilter] = useState<StorageFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [addFoodOpen, setAddFoodOpen] = useState(false);
+  const [editItem, setEditItem] = useState<FoodItem | null>(null);
+  const [recipeItem, setRecipeItem] = useState<FoodItem | null>(null);
+  const [deleteItemData, setDeleteItemData] = useState<FoodItem | null>(null);
 
-  const getUrgencyColor = (daysLeft: number) => {
-    if (daysLeft <= 1) return "bg-woodland text-primary-foreground";
-    if (daysLeft <= 3) return "bg-secondary text-secondary-foreground";
-    return "bg-muted text-muted-foreground";
+  const itemsWithDays = getItemsWithDaysLeft();
+  const expiringSoon = getExpiringSoonItems();
+  const expired = getExpiredItems();
+
+  // Show toast on mount if there are expiring items
+  useEffect(() => {
+    if (!loading && (expiringSoon.length > 0 || expired.length > 0)) {
+      const total = expiringSoon.length + expired.length;
+      toast({
+        title: "Attention needed!",
+        description: `You have ${total} item${total > 1 ? "s" : ""} that need${total === 1 ? "s" : ""} attention.`,
+      });
+    }
+  }, [loading, expiringSoon.length, expired.length]);
+
+  // Filter items
+  const filteredItems = useMemo(() => {
+    return itemsWithDays.filter((item) => {
+      // Storage filter
+      if (storageFilter !== "all" && item.storage !== storageFilter) {
+        return false;
+      }
+
+      // Status filter
+      if (statusFilter === "expiring" && (item.daysLeft < 0 || item.daysLeft > 3)) {
+        return false;
+      }
+      if (statusFilter === "expired" && item.daysLeft >= 0) {
+        return false;
+      }
+
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          item.name.toLowerCase().includes(query) ||
+          item.category?.toLowerCase().includes(query) ||
+          item.notes?.toLowerCase().includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [itemsWithDays, storageFilter, statusFilter, searchQuery]);
+
+  const handleOpenTriage = (item: FoodItem) => {
+    // Navigate to triage with item data
+    navigate(`/learn?item=${encodeURIComponent(item.name)}`);
   };
 
-  const getProgressBarColor = (daysLeft: number) => {
-    if (daysLeft <= 1) return "bg-woodland";
-    if (daysLeft <= 3) return "bg-asparagus";
-    return "bg-pine-glade";
+  const handleDonate = (item: FoodItem) => {
+    // Navigate to donate with item pre-selected
+    navigate(`/donate?item=${encodeURIComponent(item.name)}`);
   };
+
+  const handleFreeze = async (item: FoodItem) => {
+    const success = await freezeItem(item.id);
+    if (success) {
+      toast({
+        title: "Item frozen",
+        description: `${item.name} moved to freezer with extended expiry (+90 days)`,
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteItemData) {
+      await deleteItem(deleteItemData.id);
+      setDeleteItemData(null);
+    }
+  };
+
+  const handleMarkAsEaten = async () => {
+    if (recipeItem) {
+      await deleteItem(recipeItem.id);
+      setRecipeItem(null);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-16 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h1 className="text-2xl font-bold mb-2">Sign in required</h1>
+          <p className="text-muted-foreground mb-6">
+            Please sign in to manage your food inventory
+          </p>
+          <Button onClick={() => navigate("/auth")}>Sign In</Button>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      <main className="container mx-auto px-4 py-8 space-y-8">
+
+      <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-foreground mb-2">My Food Inventory</h1>
             <p className="text-muted-foreground">
-              Manage your food items and track expiration dates
+              Track your food items and reduce waste
             </p>
           </div>
-          <Dialog open={addFoodOpen} onOpenChange={setAddFoodOpen}>
-            <DialogTrigger asChild>
-              <Button size="lg" className="bg-primary hover:bg-asparagus transition-colors">
-                <Plus className="h-5 w-5 mr-2" />
-                Add Food
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add Food Item</DialogTitle>
-                <DialogDescription>
-                  Choose how you'd like to add your food
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <Button className="w-full justify-start" variant="outline" size="lg">
-                  <PackageIcon className="h-5 w-5 mr-3" />
-                  Manual Entry
-                </Button>
-                <Button className="w-full justify-start" variant="outline" size="lg" disabled>
-                  <span className="h-5 w-5 mr-3">📷</span>
-                  Scan Barcode (Coming Soon)
-                </Button>
-                <Button className="w-full justify-start" variant="outline" size="lg" disabled>
-                  <span className="h-5 w-5 mr-3">🤖</span>
-                  Receipt Scan (Coming Soon)
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button
+            size="lg"
+            className="bg-primary hover:bg-asparagus transition-colors"
+            onClick={() => setAddFoodOpen(true)}
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Food
+          </Button>
         </div>
+
+        {/* Expiring Items Banner */}
+        <ExpiringItemsBanner
+          expiringSoonCount={expiringSoon.length}
+          expiredCount={expired.length}
+          onFilterExpiring={() => setStatusFilter("expiring")}
+        />
 
         {/* Search and Filters */}
         <div className="space-y-4">
@@ -135,75 +189,113 @@ export default function MyFood() {
               className="pl-10"
             />
           </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {storageFilters.map((filter) => {
-              const Icon = filter.icon;
-              return (
+
+          <div className="flex flex-wrap gap-2">
+            {/* Storage filters */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {storageFilters.map((filter) => {
+                const Icon = filter.icon;
+                return (
+                  <Button
+                    key={filter.value}
+                    variant={storageFilter === filter.value ? "default" : "outline"}
+                    onClick={() => setStorageFilter(filter.value)}
+                    className="whitespace-nowrap"
+                    size="sm"
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {filter.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Status filters */}
+            <div className="flex gap-2 ml-auto">
+              {statusFilters.map((filter) => (
                 <Button
                   key={filter.value}
-                  variant={selectedFilter === filter.value ? "default" : "outline"}
-                  onClick={() => setSelectedFilter(filter.value)}
-                  className="whitespace-nowrap"
+                  variant={statusFilter === filter.value ? "secondary" : "ghost"}
+                  onClick={() => setStatusFilter(filter.value)}
+                  size="sm"
                 >
-                  <Icon className="h-4 w-4 mr-2" />
                   {filter.label}
                 </Button>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Food Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockInventory.map((item) => (
-            <Card key={item.id} className="p-6 hover:shadow-lg transition-all duration-300 hover-lift">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center text-primary">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-card-foreground">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">{item.quantity}</p>
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Open Triage</DropdownMenuItem>
-                    <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                    <DropdownMenuItem>Cook/Eat</DropdownMenuItem>
-                    <DropdownMenuItem>Donate</DropdownMenuItem>
-                    <DropdownMenuItem>Freeze</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">Remove</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{item.storage}</span>
-                  <Badge className={getUrgencyColor(item.daysLeft)}>
-                    {item.daysLeft === 1 ? "Use Today" : `${item.daysLeft} days left`}
-                  </Badge>
-                </div>
-                
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${getProgressBarColor(item.daysLeft)}`}
-                    style={{ width: `${Math.max(10, (item.daysLeft / 7) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-40 rounded-lg" />
+            ))}
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="py-16 text-center">
+            <PackageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-medium mb-2">
+              {itemsWithDays.length === 0 ? "No food items yet" : "No items match your filters"}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {itemsWithDays.length === 0
+                ? "Add your first food item to start tracking"
+                : "Try adjusting your search or filters"}
+            </p>
+            {itemsWithDays.length === 0 && (
+              <Button onClick={() => setAddFoodOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Food Item
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
+              <FoodItemCard
+                key={item.id}
+                item={item}
+                onOpenTriage={() => handleOpenTriage(item)}
+                onEdit={() => setEditItem(item)}
+                onCookEat={() => setRecipeItem(item)}
+                onDonate={() => handleDonate(item)}
+                onFreeze={() => handleFreeze(item)}
+                onRemove={() => setDeleteItemData(item)}
+              />
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* Modals */}
+      <AddFoodModal
+        open={addFoodOpen}
+        onOpenChange={setAddFoodOpen}
+        onSubmit={addItem}
+      />
+
+      <EditFoodModal
+        item={editItem}
+        open={!!editItem}
+        onOpenChange={(open) => !open && setEditItem(null)}
+        onSubmit={updateItem}
+      />
+
+      <RecipeSuggestionsModal
+        item={recipeItem}
+        open={!!recipeItem}
+        onOpenChange={(open) => !open && setRecipeItem(null)}
+        onMarkAsEaten={handleMarkAsEaten}
+      />
+
+      <DeleteConfirmDialog
+        item={deleteItemData}
+        open={!!deleteItemData}
+        onOpenChange={(open) => !open && setDeleteItemData(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
