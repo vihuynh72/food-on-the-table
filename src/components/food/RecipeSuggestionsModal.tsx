@@ -11,10 +11,10 @@ import { ChefHat, Clock, Users, ExternalLink } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
 
 interface RecipeSuggestionsModalProps {
-  item: FoodItem | null;
+  item?: FoodItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onMarkAsEaten: () => void;
+  onMarkAsEaten?: () => void;
 }
 
 // Static recipe suggestions based on common ingredients
@@ -62,13 +62,11 @@ export function RecipeSuggestionsModal({
   onOpenChange,
   onMarkAsEaten,
 }: RecipeSuggestionsModalProps) {
-  if (!item) return null;
-
-  const category = item.category?.toLowerCase() || "default";
+  const category = item?.category?.toLowerCase() || "default";
   const recipes = recipeDatabase[category] || recipeDatabase.default;
 
   const handleMarkEaten = () => {
-    onMarkAsEaten();
+    onMarkAsEaten?.();
     onOpenChange(false);
   };
 
@@ -78,10 +76,13 @@ export function RecipeSuggestionsModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ChefHat className="h-5 w-5" />
-            Recipe Ideas for {item.name}
+            {item ? `Recipe Ideas for ${item.name}` : "Quick Recipe Ideas"}
           </DialogTitle>
           <DialogDescription>
-            Here are some quick recipes to use your {item.name.toLowerCase()}
+            {item 
+              ? `Here are some quick recipes to use your ${item.name.toLowerCase()}`
+              : "Here are some creative ideas for your next meal based on common pantry items."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -110,7 +111,7 @@ export function RecipeSuggestionsModal({
             className="text-sm p-0"
             onClick={() =>
               window.open(
-                `https://www.google.com/search?q=${encodeURIComponent(item.name + " recipes")}`,
+                `https://www.google.com/search?q=${encodeURIComponent((item?.name || "easy dinner") + " recipes")}`,
                 "_blank"
               )
             }
@@ -118,9 +119,13 @@ export function RecipeSuggestionsModal({
             <ExternalLink className="h-4 w-4 mr-1" />
             Search more recipes
           </Button>
-          <Button onClick={handleMarkEaten} className="bg-primary hover:bg-asparagus">
-            Mark as Eaten
-          </Button>
+          {item && onMarkAsEaten ? (
+            <Button onClick={handleMarkEaten} className="bg-primary hover:bg-asparagus">
+              Mark as Eaten
+            </Button>
+          ) : (
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -48,19 +48,11 @@ export function AddFoodModal({ open, onOpenChange, onSubmit }: AddFoodModalProps
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {step === "select" && "Add Food Item"}
-            {step === "manual" && "Enter Food Details"}
-            {step === "barcode" && "Scan Barcode"}
-            {step === "receipt" && "Scan Receipt"}
-          </DialogTitle>
+          <DialogTitle>Add Food Item</DialogTitle>
           <DialogDescription>
-            {step === "select" && "Choose how you'd like to add your food"}
-            {step === "manual" && "Fill in the details for your food item"}
-            {step === "barcode" && "Point your camera at the barcode"}
-            {step === "receipt" && "Upload a receipt to automatically add items"}
+            Add items to your inventory to track expiry dates and reduce waste.
           </DialogDescription>
         </DialogHeader>
 

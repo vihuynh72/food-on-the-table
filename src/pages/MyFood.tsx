@@ -4,7 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Refrigerator, Snowflake, Package as PackageIcon, AlertCircle } from "lucide-react";
+import { Plus, Search, Refrigerator, Snowflake, Package as PackageIcon, AlertCircle, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFoodInventory, FoodItem } from "@/hooks/useFoodInventory";
 import { FoodItemCard } from "@/components/food/FoodItemCard";
@@ -14,6 +14,17 @@ import { RecipeSuggestionsModal } from "@/components/food/RecipeSuggestionsModal
 import { DeleteConfirmDialog } from "@/components/food/DeleteConfirmDialog";
 import { ExpiringItemsBanner } from "@/components/food/ExpiringItemsBanner";
 import { toast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type StorageFilter = "all" | "fridge" | "freezer" | "pantry";
 type StatusFilter = "all" | "expiring" | "expired";
@@ -39,6 +50,7 @@ export default function MyFood() {
     addItem,
     updateItem,
     deleteItem,
+    deleteAllItems,
     freezeItem,
     getItemsWithDaysLeft,
     getExpiringSoonItems,
@@ -52,6 +64,7 @@ export default function MyFood() {
   const [editItem, setEditItem] = useState<FoodItem | null>(null);
   const [recipeItem, setRecipeItem] = useState<FoodItem | null>(null);
   const [deleteItemData, setDeleteItemData] = useState<FoodItem | null>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   const itemsWithDays = getItemsWithDaysLeft();
   const expiringSoon = getExpiringSoonItems();
@@ -132,6 +145,13 @@ export default function MyFood() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const success = await deleteAllItems();
+    if (success) {
+      setShowDeleteAllConfirm(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -161,14 +181,27 @@ export default function MyFood() {
               Track your food items and reduce waste
             </p>
           </div>
-          <Button
-            size="lg"
-            className="bg-primary hover:bg-asparagus transition-colors"
-            onClick={() => setAddFoodOpen(true)}
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Food
-          </Button>
+          <div className="flex gap-2">
+            {itemsWithDays.length > 0 && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                onClick={() => setShowDeleteAllConfirm(true)}
+              >
+                <Trash2 className="h-5 w-5 mr-2" />
+                Clear All
+              </Button>
+            )}
+            <Button
+              size="lg"
+              className="bg-primary hover:bg-asparagus transition-colors shadow-lg shadow-primary/20"
+              onClick={() => setAddFoodOpen(true)}
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add Food
+            </Button>
+          </div>
         </div>
 
         {/* Expiring Items Banner */}
@@ -179,93 +212,119 @@ export default function MyFood() {
         />
 
         {/* Search and Filters */}
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-4 -mx-4 px-4 border-b border-border/40 space-y-4">
+          <div className="relative max-w-md mx-auto md:mx-0 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search food items..."
+              placeholder="Search your inventory..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-11 rounded-full bg-muted/50 border-transparent focus:bg-background focus:border-primary/20 transition-all"
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* Storage filters */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            {/* Storage filters - Tabs style */}
+            <div className="flex p-1 bg-muted/30 rounded-xl overflow-x-auto max-w-full no-scrollbar">
               {storageFilters.map((filter) => {
                 const Icon = filter.icon;
+                const isActive = storageFilter === filter.value;
                 return (
-                  <Button
+                  <button
                     key={filter.value}
-                    variant={storageFilter === filter.value ? "default" : "outline"}
                     onClick={() => setStorageFilter(filter.value)}
-                    className="whitespace-nowrap"
-                    size="sm"
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                      ${isActive 
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-black/5" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}
+                    `}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />
                     {filter.label}
-                  </Button>
+                  </button>
                 );
               })}
             </div>
 
-            {/* Status filters */}
-            <div className="flex gap-2 ml-auto">
-              {statusFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  variant={statusFilter === filter.value ? "secondary" : "ghost"}
-                  onClick={() => setStatusFilter(filter.value)}
-                  size="sm"
-                >
-                  {filter.label}
-                </Button>
-              ))}
+            {/* Status filters - Chips style */}
+            <div className="flex gap-2 overflow-x-auto max-w-full no-scrollbar pb-1">
+              {statusFilters.map((filter) => {
+                const isActive = statusFilter === filter.value;
+                return (
+                  <button
+                    key={filter.value}
+                    onClick={() => setStatusFilter(filter.value)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap
+                      ${isActive 
+                        ? "bg-primary/10 text-primary border-primary/20" 
+                        : "bg-transparent text-muted-foreground border-transparent hover:bg-muted"}
+                    `}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Food Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-[200px] rounded-2xl" />
             ))}
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="py-16 text-center">
-            <PackageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-medium mb-2">
-              {itemsWithDays.length === 0 ? "No food items yet" : "No items match your filters"}
+          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+            <div className="w-24 h-24 bg-muted/30 rounded-full flex items-center justify-center mb-6">
+              <PackageIcon className="h-10 w-10 text-muted-foreground/40" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2 text-foreground">
+              {itemsWithDays.length === 0 ? "Your kitchen is empty!" : "No items found"}
             </h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
               {itemsWithDays.length === 0
-                ? "Add your first food item to start tracking"
-                : "Try adjusting your search or filters"}
+                ? "Start tracking your food to reduce waste and save money."
+                : "Try adjusting your search or filters to find what you're looking for."}
             </p>
             {itemsWithDays.length === 0 && (
-              <Button onClick={() => setAddFoodOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Food Item
+              <Button onClick={() => setAddFoodOpen(true)} size="lg" className="rounded-full px-8 shadow-lg shadow-primary/20">
+                <Plus className="h-5 w-5 mr-2" />
+                Add First Item
               </Button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <FoodItemCard
-                key={item.id}
-                item={item}
-                onOpenTriage={() => handleOpenTriage(item)}
-                onEdit={() => setEditItem(item)}
-                onCookEat={() => setRecipeItem(item)}
-                onDonate={() => handleDonate(item)}
-                onFreeze={() => handleFreeze(item)}
-                onRemove={() => setDeleteItemData(item)}
-              />
-            ))}
-          </div>
+          <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <FoodItemCard
+                    item={item}
+                    onOpenTriage={() => handleOpenTriage(item)}
+                    onEdit={() => setEditItem(item)}
+                    onCookEat={() => setRecipeItem(item)}
+                    onDonate={() => handleDonate(item)}
+                    onFreeze={() => handleFreeze(item)}
+                    onRemove={() => setDeleteItemData(item)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </main>
 
@@ -296,6 +355,23 @@ export default function MyFood() {
         onOpenChange={(open) => !open && setDeleteItemData(null)}
         onConfirm={handleDelete}
       />
+
+      <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear entire inventory?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete all food items from your inventory.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
