@@ -4,6 +4,7 @@ import { FoodItemCard } from "@/components/FoodItemCard";
 import { StatCard } from "@/components/StatCard";
 import { QuickActionGrid } from "@/components/QuickActionGrid";
 import { AddFoodModal } from "@/components/food/AddFoodModal";
+import { RecipeSuggestionsModal } from "@/components/food/RecipeSuggestionsModal";
 import { TriageQuiz } from "@/components/TriageQuiz";
 import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export default function Index() {
   const { getExpiringSoonItems, loading, addItem } = useFoodInventory();
   const [showTriageModal, setShowTriageModal] = useState(false);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
 
   const handleTriageClick = () => {
     setShowTriageModal(true);
@@ -283,7 +285,10 @@ export default function Index() {
         {/* Quick Actions */}
         <section className="space-y-6">
           <h2 className="text-foreground text-2xl font-bold">Quick Actions</h2>
-          <QuickActionGrid onAddFood={() => setAddFoodOpen(true)} />
+          <QuickActionGrid 
+            onAddFood={() => setAddFoodOpen(true)} 
+            onGenerateRecipe={() => setRecipeModalOpen(true)}
+          />
         </section>
 
         {/* Impact Snapshot */}
@@ -320,6 +325,12 @@ export default function Index() {
         open={addFoodOpen}
         onOpenChange={setAddFoodOpen}
         onSubmit={addItem}
+      />
+
+      {/* Recipe Suggestions Modal */}
+      <RecipeSuggestionsModal
+        open={recipeModalOpen}
+        onOpenChange={setRecipeModalOpen}
       />
     </div>
   );

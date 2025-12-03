@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 interface TriageQuizProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,10 +77,12 @@ interface QuizStep {
       label: string;
       icon: LucideIcon;
       color: string; // tailwind class
+      href?: string;
     };
     secondaryActions: {
       label: string;
       icon: LucideIcon;
+      href?: string;
     }[];
   };
 }
@@ -166,8 +170,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Donate This Item",
       description: "This item appears to be in perfect condition for donation. Local food banks would love to have it!",
-      primaryAction: { label: "Find Donation Spot", icon: Heart, color: "bg-woodland hover:bg-woodland/90" },
-      secondaryActions: [{ label: "Share with Neighbors", icon: Users }, { label: "Eat it yourself", icon: Utensils }]
+      primaryAction: { label: "Find Donation Spot", icon: Heart, color: "bg-woodland hover:bg-woodland/90", href: "/donate" },
+      secondaryActions: [{ label: "Share with Neighbors", icon: Users, href: "/community" }, { label: "Eat it yourself", icon: Utensils, href: "/my-food" }]
     }
   },
   result_donate_caution: {
@@ -177,8 +181,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Maybe Donatable",
       description: "Some food banks accept items past 'Best By' dates, but not all. Check with them first.",
-      primaryAction: { label: "Contact Food Bank", icon: Heart, color: "bg-asparagus hover:bg-asparagus/90" },
-      secondaryActions: [{ label: "Eat it yourself", icon: Utensils }, { label: "Compost", icon: Leaf }]
+      primaryAction: { label: "Contact Food Bank", icon: Heart, color: "bg-asparagus hover:bg-asparagus/90", href: "/donate" },
+      secondaryActions: [{ label: "Eat it yourself", icon: Utensils, href: "/my-food" }, { label: "Compost", icon: Leaf, href: "/donate" }]
     }
   },
   result_share: {
@@ -188,8 +192,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Perfect for Sharing",
       description: "This is great for a neighbor who might need a meal or ingredients.",
-      primaryAction: { label: "Post to Community", icon: Users, color: "bg-woodland hover:bg-woodland/90" },
-      secondaryActions: [{ label: "Eat it yourself", icon: Utensils }, { label: "Freeze", icon: Snowflake }]
+      primaryAction: { label: "Post to Community", icon: Users, color: "bg-woodland hover:bg-woodland/90", href: "/community" },
+      secondaryActions: [{ label: "Eat it yourself", icon: Utensils, href: "/my-food" }, { label: "Freeze", icon: Snowflake, href: "/learn" }]
     }
   },
   result_eat: {
@@ -199,8 +203,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Best to Eat Now",
       description: "It's good to eat, but might not be suitable for donation due to being open or older.",
-      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80" },
-      secondaryActions: [{ label: "Freeze", icon: Snowflake }, { label: "Share", icon: Users }]
+      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80", href: "/my-food" },
+      secondaryActions: [{ label: "Freeze", icon: Snowflake, href: "/learn" }, { label: "Share", icon: Users, href: "/community" }]
     }
   },
   result_eat_soon: {
@@ -210,8 +214,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Eat or Cook Now",
       description: "It's a bit past its prime visually, but still edible. Cook it to hide imperfections!",
-      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80" },
-      secondaryActions: [{ label: "Smoothie/Soup", icon: RefreshCw }, { label: "Compost", icon: Leaf }]
+      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80", href: "/my-food" },
+      secondaryActions: [{ label: "Smoothie/Soup", icon: RefreshCw, href: "/my-food" }, { label: "Compost", icon: Leaf, href: "/donate" }]
     }
   },
   result_eat_caution: {
@@ -221,8 +225,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Smell Test Required",
       description: "It's on the edge. If it smells fine, eat it now. Otherwise, don't risk it.",
-      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80" },
-      secondaryActions: [{ label: "Compost", icon: Leaf }]
+      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-pine-glade text-woodland hover:bg-pine-glade/80", href: "/my-food" },
+      secondaryActions: [{ label: "Compost", icon: Leaf, href: "/donate" }]
     }
   },
   result_cook_immediately: {
@@ -232,8 +236,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Cook Thoroughly",
       description: "Raw meat/dairy should be used ASAP if it's been a while. Cook it well.",
-      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-woodland hover:bg-woodland/90" },
-      secondaryActions: [{ label: "Freeze (if cooked)", icon: Snowflake }]
+      primaryAction: { label: "Find Recipes", icon: ChefHat, color: "bg-woodland hover:bg-woodland/90", href: "/my-food" },
+      secondaryActions: [{ label: "Freeze (if cooked)", icon: Snowflake, href: "/learn" }]
     }
   },
   result_repurpose: {
@@ -243,8 +247,8 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Give it New Life",
       description: "Stale bread makes great croutons or bread pudding!",
-      primaryAction: { label: "Repurpose Ideas", icon: RefreshCw, color: "bg-asparagus hover:bg-asparagus/90" },
-      secondaryActions: [{ label: "Compost", icon: Leaf }]
+      primaryAction: { label: "Repurpose Ideas", icon: RefreshCw, color: "bg-asparagus hover:bg-asparagus/90", href: "/learn" },
+      secondaryActions: [{ label: "Compost", icon: Leaf, href: "/donate" }]
     }
   },
   result_compost: {
@@ -254,7 +258,7 @@ const STEPS: Record<StepId, QuizStep> = {
     resultData: {
       title: "Time to Compost",
       description: "It's not safe to eat, but it can still feed the soil!",
-      primaryAction: { label: "Find Compost Site", icon: Leaf, color: "bg-woodland hover:bg-woodland/90" },
+      primaryAction: { label: "Find Compost Site", icon: Leaf, color: "bg-woodland hover:bg-woodland/90", href: "/donate" },
       secondaryActions: [{ label: "Discard", icon: Trash2 }]
     }
   },
@@ -272,6 +276,7 @@ const STEPS: Record<StepId, QuizStep> = {
 };
 
 export function TriageQuiz({ open, onOpenChange, onComplete }: TriageQuizProps) {
+  const navigate = useNavigate();
   const [history, setHistory] = useState<StepId[]>(["start"]);
   const currentStepId = history[history.length - 1];
   const currentStep = STEPS[currentStepId];
@@ -293,9 +298,12 @@ export function TriageQuiz({ open, onOpenChange, onComplete }: TriageQuizProps) 
     setHistory(["start"]);
   };
 
-  const handleComplete = () => {
+  const handleComplete = (path?: string) => {
     onOpenChange(false);
     onComplete?.();
+    if (path) {
+      navigate(path);
+    }
     setTimeout(handleReset, 300); // Reset after animation
   };
 
@@ -361,7 +369,7 @@ export function TriageQuiz({ open, onOpenChange, onComplete }: TriageQuizProps) 
                   <div className="space-y-3">
                     <Button 
                       className={`w-full h-12 text-lg ${currentStep.resultData.primaryAction.color}`}
-                      onClick={handleComplete}
+                      onClick={() => handleComplete(currentStep.resultData?.primaryAction.href)}
                     >
                       <currentStep.resultData.primaryAction.icon className="mr-2 h-5 w-5" />
                       {currentStep.resultData.primaryAction.label}
@@ -373,7 +381,7 @@ export function TriageQuiz({ open, onOpenChange, onComplete }: TriageQuizProps) 
                           key={idx} 
                           variant="outline" 
                           className="w-full border-woodland/20 hover:bg-pine-glade/20"
-                          onClick={handleComplete}
+                          onClick={() => handleComplete(action.href)}
                         >
                           <action.icon className="mr-2 h-4 w-4 text-woodland" />
                           {action.label}

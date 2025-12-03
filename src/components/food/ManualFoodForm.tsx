@@ -130,9 +130,14 @@ export function ManualFoodForm({
   };
 
   const handleQuickExpiry = (days: number) => {
-    const newDate = addDays(new Date(), days);
+    // If there's an existing expiry date, add to it. Otherwise add to today.
+    const baseDate = expiryDate || new Date();
+    const newDate = addDays(baseDate, days);
     setExpiryDate(newDate);
-    setDaysRemaining(days.toString());
+    
+    // Update days remaining display relative to today
+    const daysFromToday = differenceInCalendarDays(newDate, new Date());
+    setDaysRemaining(daysFromToday.toString());
   };
 
   const handleDaysRemainingChange = (val: string) => {
@@ -396,12 +401,14 @@ export function ManualFoodForm({
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-full justify-start text-left font-normal h-12 text-base bg-background",
+                      "w-full justify-start text-left font-normal h-12 text-sm bg-background",
                       !expiryDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-5 w-5 opacity-50" />
-                    {expiryDate ? format(expiryDate, "EEEE, MMMM d, yyyy") : <span>Pick a specific date</span>}
+                    <CalendarIcon className="mr-2 h-5 w-5 opacity-50 shrink-0" />
+                    <span className="truncate">
+                      {expiryDate ? format(expiryDate, "EEE, MMM d, yyyy") : "Pick a specific date"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">

@@ -4,14 +4,16 @@ import {
   HeartHandshake,
   Leaf,
   BookOpen,
+  ChefHat,
 } from "lucide-react";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 
 interface QuickActionGridProps {
   onAddFood: () => void;
+  onGenerateRecipe: () => void;
 }
 
-export function QuickActionGrid({ onAddFood }: QuickActionGridProps) {
+export function QuickActionGrid({ onAddFood, onGenerateRecipe }: QuickActionGridProps) {
   const features = [
     {
       Icon: ScanBarcode,
@@ -47,11 +49,12 @@ export function QuickActionGrid({ onAddFood }: QuickActionGridProps) {
       className: "lg:col-span-1 lg:row-span-1",
     },
     {
-      Icon: BookOpen,
-      name: "Tips & Learn",
-      description: "Learn how to store food properly to last longer.",
-      href: "/learn",
-      cta: "Read Tips",
+      Icon: ChefHat,
+      name: "Generate Recipe",
+      description: "Get creative ideas for meals based on what you have.",
+      href: "#",
+      cta: "Get Ideas",
+      onClick: onGenerateRecipe,
       className: "lg:col-span-1 lg:row-span-1",
     },
   ];

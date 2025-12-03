@@ -57,6 +57,7 @@ export default function Donate() {
   const radiusInputValue = distanceInputValues[0] ?? radiusMiles.toString();
   const radiusMeters = useMemo(() => radiusMiles * MILES_TO_METERS, [radiusMiles]);
   const { position, status, errorMessage, requestLocation } = useUserLocation();
+  const [searchCenter, setSearchCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const { locations, isLoading: isSearching, error: searchError, searchArea } = usePlacesSearch({
     location: position,
     radius: radiusMeters,
@@ -194,6 +195,7 @@ export default function Donate() {
 
   const handleSearchArea = useCallback(
     async (center: google.maps.LatLngLiteral, overrideRadius?: number) => {
+      setSearchCenter(center);
       setIsManualSearching(true);
       try {
         await searchArea(center, overrideRadius ?? radiusMeters);
@@ -217,6 +219,7 @@ export default function Donate() {
   const handleLocationSelect = useCallback(
     async (location: { lat: number; lng: number; address: string }) => {
       const center = { lat: location.lat, lng: location.lng };
+      setSearchCenter(center);
       setIsManualSearching(true);
       try {
         await searchArea(center, radiusMeters);
@@ -362,6 +365,7 @@ export default function Donate() {
                 selectedLocationId={selectedLocationId}
                 onSelectLocation={handleSelectFromMap}
                 userPosition={position as google.maps.LatLngLiteral | null}
+                searchCenter={searchCenter}
                 onSearchArea={handleSearchArea}
                 isSearching={isManualSearching}
                 searchRadiusMeters={radiusMeters}
@@ -369,25 +373,27 @@ export default function Donate() {
             </div>
           </div>
 
-          <div className="space-y-4 lg:max-h-[600px] lg:overflow-y-auto">
-            {visibleLocations.length === 0 && (
-              <Card className="border-dashed">
-                <CardHeader>
-                  <CardTitle className="text-woodland">No locations found</CardTitle>
-                  <CardDescription>Try another filter to discover more donation centers.</CardDescription>
-                </CardHeader>
-              </Card>
-            )}
-            {visibleLocations.map((location) => (
-              <DonationLocationCard
-                key={location.id}
-                location={location}
-                selected={selectedLocationId === location.id}
-                details={locationDetails[location.id]}
-                loadingDetails={loadingDetails.has(location.id)}
-                onSelect={handleSelectFromCard}
-              />
-            ))}
+          <div className="relative min-h-[600px] lg:min-h-0">
+            <div className="absolute inset-0 overflow-y-auto space-y-4 pr-2 pb-2">
+              {visibleLocations.length === 0 && (
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-woodland">No locations found</CardTitle>
+                    <CardDescription>Try another filter to discover more donation centers.</CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+              {visibleLocations.map((location) => (
+                <DonationLocationCard
+                  key={location.id}
+                  location={location}
+                  selected={selectedLocationId === location.id}
+                  details={locationDetails[location.id]}
+                  loadingDetails={loadingDetails.has(location.id)}
+                  onSelect={handleSelectFromCard}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

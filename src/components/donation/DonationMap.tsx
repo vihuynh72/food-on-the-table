@@ -33,6 +33,7 @@ export interface DonationMapProps {
   selectedLocationId?: string;
   onSelectLocation?: (id: string) => Promise<void> | void;
   userPosition?: google.maps.LatLngLiteral | null;
+  searchCenter?: google.maps.LatLngLiteral | null;
   onSearchArea?: (center: google.maps.LatLngLiteral, searchRadiusMeters?: number) => void;
   isSearching?: boolean;
   searchRadiusMeters?: number;
@@ -92,6 +93,7 @@ export function DonationMap({
   selectedLocationId,
   onSelectLocation,
   userPosition,
+  searchCenter,
   onSearchArea,
   isSearching = false,
   searchRadiusMeters,
@@ -134,7 +136,7 @@ export function DonationMap({
     loadGoogleMaps(apiKey)
       .then((maps) => {
         if (!mapContainerRef.current || !isMounted) return;
-        const center = latestUserPositionRef.current ?? DEFAULT_CENTER;
+        const center = searchCenter ?? latestUserPositionRef.current ?? DEFAULT_CENTER;
         initialCenterRef.current = center;
         mapRef.current = new maps.Map(mapContainerRef.current, {
           center,
@@ -197,7 +199,7 @@ export function DonationMap({
 
   // Add user location marker and radius circle
   useEffect(() => {
-    if (!mapRef.current || !isReady || !userPosition) return;
+    if (!mapRef.current || !isReady) return;
 
     const maps = window.google.maps;
 
@@ -210,20 +212,25 @@ export function DonationMap({
     }
 
     // Create blue dot marker for user location
-    userMarkerRef.current = new maps.Marker({
-      position: userPosition,
-      map: mapRef.current,
-      title: "Your location",
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: "#4285F4",
-        fillOpacity: 1,
-        strokeWeight: 3,
-        strokeColor: "#FFFFFF",
-      },
-      zIndex: 1000,
-    });
+    if (userPosition) {
+      userMarkerRef.current = new maps.Marker({
+        position: userPosition,
+        map: mapRef.current,
+        title: "Your location",
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeWeight: 3,
+          strokeColor: "#FFFFFF",
+        },
+        zIndex: 1000,
+      });
+    }
+
+    const center = searchCenter ?? userPosition;
+    if (!center) return;
 
     const radius = searchRadiusMeters ?? 8046.72;
 
@@ -235,13 +242,13 @@ export function DonationMap({
       fillColor: "#4285F4",
       fillOpacity: 0.1,
       map: mapRef.current,
-      center: userPosition,
+      center: center,
       radius,
     });
 
-    mapRef.current.panTo(userPosition);
+    mapRef.current.panTo(center);
     mapRef.current.setZoom(13);
-  }, [userPosition, isReady, searchRadiusMeters]);
+  }, [userPosition, searchCenter, isReady, searchRadiusMeters]);
 
   useEffect(() => {
     if (userCircleRef.current && typeof searchRadiusMeters === "number") {

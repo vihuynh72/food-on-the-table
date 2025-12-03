@@ -22,6 +22,9 @@ const SEARCH_QUERIES = [
   { keyword: "food pantry", type: "pantry" as DonationLocationType },
   { keyword: "soup kitchen", type: "shelter" as DonationLocationType },
   { keyword: "community fridge", type: "community_fridge" as DonationLocationType },
+  { keyword: "food donation", type: "food_bank" as DonationLocationType },
+  { keyword: "homeless shelter", type: "shelter" as DonationLocationType },
+  { keyword: "charity food", type: "pantry" as DonationLocationType },
 ];
 
 const RELEVANT_GOOGLE_TYPES = new Set<string>([
@@ -39,6 +42,7 @@ const RELEVANT_GOOGLE_TYPES = new Set<string>([
   "local_government_office",
   "social_service_organization",
   "charity",
+  "non_profit_organization",
 ]);
 
 const RELEVANT_NAME_KEYWORDS = [
@@ -54,6 +58,14 @@ const RELEVANT_NAME_KEYWORDS = [
   "mission",
   "shelter",
   "food shelf",
+  "food drive",
+  "food distribution",
+  "salvation army",
+  "feeding america",
+  "st. vincent",
+  "catholic charities",
+  "lutheran social services",
+  "meals on wheels",
 ];
 
 const BLOCKLIST_KEYWORDS = [
@@ -170,7 +182,7 @@ async function performSearch(
           status === window.google.maps.places.PlacesServiceStatus.OK &&
           results
         ) {
-          results.slice(0, 5).forEach((place) => {
+          results.slice(0, 20).forEach((place) => {
             if (
               place.place_id &&
               !seenPlaceIds.has(place.place_id) &&
