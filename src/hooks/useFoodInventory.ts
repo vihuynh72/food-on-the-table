@@ -181,7 +181,7 @@ export function useFoodInventory() {
 
         return true;
       } catch (error) {
-        console.error("Error deleting food item:", error);
+        console.error("Error deleting item:", error);
         toast({
           title: "Error",
           description: "Failed to delete item",
@@ -192,6 +192,34 @@ export function useFoodInventory() {
     },
     [user]
   );
+
+  const deleteAllItems = useCallback(async () => {
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from("food_items")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setItems([]);
+      toast({
+        title: "Inventory Cleared",
+        description: "All items have been removed from your inventory.",
+      });
+      return true;
+    } catch (error) {
+      console.error("Error clearing inventory:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clear inventory",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [user]);
 
   const freezeItem = useCallback(
     async (id: string) => {
@@ -248,6 +276,7 @@ export function useFoodInventory() {
     addItem,
     updateItem,
     deleteItem,
+    deleteAllItems,
     freezeItem,
     getItemsWithDaysLeft,
     getExpiringSoonItems,
