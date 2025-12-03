@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Navigation } from "@/components/Navigation";
 import { FoodItemCard } from "@/components/FoodItemCard";
 import { StatCard } from "@/components/StatCard";
-import { QuickActionCard } from "@/components/QuickActionCard";
+import { QuickActionGrid } from "@/components/QuickActionGrid";
+import { AddFoodModal } from "@/components/food/AddFoodModal";
 import { TriageQuiz } from "@/components/TriageQuiz";
 import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 import { Button } from "@/components/ui/button";
@@ -66,8 +67,9 @@ const FloatingIcon = ({ icon: Icon, className, delay }: FloatingIconProps) => (
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getExpiringSoonItems, loading } = useFoodInventory();
+  const { getExpiringSoonItems, loading, addItem } = useFoodInventory();
   const [showTriageModal, setShowTriageModal] = useState(false);
+  const [addFoodOpen, setAddFoodOpen] = useState(false);
 
   const handleTriageClick = () => {
     setShowTriageModal(true);
@@ -281,28 +283,7 @@ export default function Index() {
         {/* Quick Actions */}
         <section className="space-y-6">
           <h2 className="text-foreground text-2xl font-bold">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickActionCard
-              title="Add Food"
-              icon={Plus}
-              onClick={() => navigate("/my-food")}
-            />
-            <QuickActionCard
-              title="Community"
-              icon={Users}
-              onClick={() => navigate("/community")}
-            />
-            <QuickActionCard
-              title="View Impact"
-              icon={Trophy}
-              onClick={() => navigate("/impact")}
-            />
-            <QuickActionCard
-              title="Find Donation Spots"
-              icon={MapPin}
-              onClick={() => navigate("/donate")}
-            />
-          </div>
+          <QuickActionGrid onAddFood={() => setAddFoodOpen(true)} />
         </section>
 
         {/* Impact Snapshot */}
@@ -333,6 +314,13 @@ export default function Index() {
           </div>
         </section>
       </main>
+
+      {/* Add Food Modal */}
+      <AddFoodModal
+        open={addFoodOpen}
+        onOpenChange={setAddFoodOpen}
+        onSubmit={addItem}
+      />
     </div>
   );
 }
