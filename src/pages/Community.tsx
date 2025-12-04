@@ -111,7 +111,7 @@ export default function Community() {
       toast({ title: "Error deleting post", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Post deleted" });
-      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['community_posts'] });
     }
   };
 
