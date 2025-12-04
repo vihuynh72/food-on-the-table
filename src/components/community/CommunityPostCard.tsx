@@ -63,11 +63,6 @@ export function CommunityPostCard({ post, onInterest, onLike, onSave, onReport, 
         <div className="absolute top-2 right-2 flex gap-2">
           {getStatusBadge()}
         </div>
-        <div className="absolute top-2 left-2">
-          <Badge variant={post.type === 'offer' ? "default" : "secondary"} className={post.type === 'offer' ? "bg-primary" : "bg-orange-500"}>
-            {post.type === 'offer' ? 'Offer' : 'Request'}
-          </Badge>
-        </div>
       </div>
 
       <CardHeader className="p-4 pb-2 space-y-2">

@@ -14,8 +14,6 @@ import {
 import { Filter } from "lucide-react";
 
 interface CommunityFiltersProps {
-  selectedType: 'offer' | 'request' | 'all';
-  onTypeChange: (type: 'offer' | 'request' | 'all') => void;
   selectedCategories: string[];
   onCategoryChange: (categories: string[]) => void;
   distance: number;
@@ -33,8 +31,6 @@ const CATEGORIES = [
 ];
 
 export function CommunityFilters({
-  selectedType,
-  onTypeChange,
   selectedCategories,
   onCategoryChange,
   distance,
@@ -73,33 +69,6 @@ export function CommunityFilters({
       </div>
 
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Type</h3>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedType === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onTypeChange('all')}
-          >
-            All
-          </Button>
-          <Button
-            variant={selectedType === 'offer' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onTypeChange('offer')}
-          >
-            Offers
-          </Button>
-          <Button
-            variant={selectedType === 'request' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onTypeChange('request')}
-          >
-            Requests
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3">
         <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Categories</h3>
         <div className="space-y-2">
           {CATEGORIES.map((category) => (
@@ -133,9 +102,9 @@ export function CommunityFilters({
             <Button variant="outline" size="sm" className="gap-2">
               <Filter className="w-4 h-4" />
               Filters
-              {(selectedCategories.length > 0 || selectedType !== 'all') && (
+              {selectedCategories.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full">
-                  {selectedCategories.length + (selectedType !== 'all' ? 1 : 0)}
+                  {selectedCategories.length}
                 </Badge>
               )}
             </Button>

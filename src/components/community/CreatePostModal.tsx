@@ -51,7 +51,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
   const [step, setStep] = useState(1);
 
   // Form State
-  const [type, setType] = useState<'offer' | 'request'>('offer');
+  const [type] = useState<'offer'>('offer');
   const [title, setTitle] = useState(prefillData?.title || "");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(prefillData?.category || "");
@@ -69,15 +69,14 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
 
   // Initialize location with user position if available
   useEffect(() => {
-    if (userPosition && !selectedLocation && type === 'offer' && !postToEdit) {
+    if (userPosition && !selectedLocation && !postToEdit) {
       setSelectedLocation(userPosition);
     }
-  }, [userPosition, type, postToEdit]);
+  }, [userPosition, postToEdit]);
 
   // Populate form when editing
   useEffect(() => {
     if (postToEdit) {
-      setType(postToEdit.type as 'offer' | 'request');
       setTitle(postToEdit.title);
       setDescription(postToEdit.description || "");
       setCategory(postToEdit.category || "");
@@ -169,10 +168,10 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
         total_portions: parseInt(quantity) || 1,
         remaining_portions: parseInt(quantity) || 1,
         quantity_description: quantity || null,
-        best_before_at: type === 'offer' && expiryDate ? new Date(expiryDate).toISOString() : null,
+        best_before_at: expiryDate ? new Date(expiryDate).toISOString() : null,
         location_lat: selectedLocation?.lat || userPosition?.lat || null,
         location_lng: selectedLocation?.lng || userPosition?.lng || null,
-        location_label: locationLabel || (type === 'request' ? zipCode : "Nearby"),
+        location_label: locationLabel || "Nearby",
         status: 'active' as const
       };
       
@@ -208,7 +207,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
       console.log('Post created successfully:', post);
 
       // 2. Upload Photos (Only for offers)
-      if (type === 'offer' && photos.length > 0 && post) {
+      if (photos.length > 0 && post) {
         const uploadPromises = photos.map(async (photo) => {
           const fileExt = photo.name.split('.').pop();
           const fileName = `${post.id}/${Math.random()}.${fileExt}`;
@@ -278,29 +277,6 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
         <div className="grid gap-4 py-4">
           {step === 1 && (
             <>
-              <RadioGroup value={type} onValueChange={(v: 'offer' | 'request') => setType(v)} className="grid grid-cols-2 gap-4">
-                <div>
-                  <RadioGroupItem value="offer" id="offer" className="peer sr-only" />
-                  <Label
-                    htmlFor="offer"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span className="text-2xl mb-2">🎁</span>
-                    Offer Food
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem value="request" id="request" className="peer sr-only" />
-                  <Label
-                    htmlFor="request"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span className="text-2xl mb-2">🙏</span>
-                    Request Food
-                  </Label>
-                </div>
-              </RadioGroup>
-
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input 
@@ -353,94 +329,76 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
                     onChange={(e) => setQuantity(e.target.value)}
                   />
                 </div>
-                {type === 'offer' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">Best Before</Label>
-                    <Input 
-                      id="expiry" 
-                      type="datetime-local" 
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="expiry">Best Before</Label>
+                  <Input 
+                    id="expiry" 
+                    type="datetime-local" 
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Location</Label>
-                {type === 'offer' ? (
-                  <div className="space-y-2">
-                    <LocationSearchBar 
-                      onLocationSelect={(loc) => {
-                        setSelectedLocation({ lat: loc.lat, lng: loc.lng });
-                        setLocationLabel(loc.address);
-                      }} 
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="shrink-0" 
-                        type="button" 
-                        onClick={() => {
-                          if (userPosition) {
-                            setSelectedLocation(userPosition);
-                            setLocationLabel("Current Location");
-                          }
-                        }}
-                      >
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Use Current Location
-                      </Button>
-                      <Input 
-                        placeholder="Location label (e.g. Near Central Park)" 
-                        value={locationLabel}
-                        onChange={(e) => setLocationLabel(e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+                <div className="space-y-2">
+                  <LocationSearchBar 
+                    onLocationSelect={(loc) => {
+                      setSelectedLocation({ lat: loc.lat, lng: loc.lng });
+                      setLocationLabel(loc.address);
+                    }} 
+                  />
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="shrink-0" 
+                      type="button" 
+                      onClick={() => {
+                        if (userPosition) {
+                          setSelectedLocation(userPosition);
+                          setLocationLabel("Current Location");
+                        }
+                      }}
+                    >
+                      <MapPin className="w-3 h-3 mr-1" />
+                      Use Current Location
+                    </Button>
                     <Input 
-                      placeholder="Enter Zip Code (e.g. 90210)" 
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
-                      onBlur={handleZipCodeBlur}
+                      placeholder="Location label (e.g. Near Central Park)" 
+                      value={locationLabel}
+                      onChange={(e) => setLocationLabel(e.target.value)}
+                      className="text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      For privacy, only your approximate location (Zip Code) will be shown.
-                    </p>
                   </div>
-                )}
+                </div>
                 {selectedLocation && <p className="text-xs text-muted-foreground">Coordinates set: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}</p>}
               </div>
 
-              {type === 'offer' && (
-                <div className="space-y-2">
-                  <Label>Photos</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {photoPreviews.map((src, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-md overflow-hidden border">
-                        <img src={src} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => removePhoto(idx)}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {photoPreviews.length < 5 && (
-                      <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
-                        <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                        <span className="text-xs text-muted-foreground">Add Photo</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-                      </label>
-                    )}
-                  </div>
+              <div className="space-y-2">
+                <Label>Photos</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {photoPreviews.map((src, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-md overflow-hidden border">
+                      <img src={src} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => removePhoto(idx)}
+                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {photoPreviews.length < 5 && (
+                    <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
+                      <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">Add Photo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+                    </label>
+                  )}
                 </div>
-              )}
+              </div>
             </>
           )}
         </div>
