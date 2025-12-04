@@ -36,6 +36,9 @@ export function AddFoodModal({ open, onOpenChange, onSubmit }: AddFoodModalProps
     try {
       await onSubmit(item);
       handleClose();
+    } catch (error) {
+      console.error("AddFoodModal submission failed:", error);
+      // Keep modal open so user can fix the form; errors are surfaced via toasts
     } finally {
       setIsSubmitting(false);
     }

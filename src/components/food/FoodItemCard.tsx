@@ -16,6 +16,7 @@ import {
   Snowflake,
   HeartHandshake,
   CalendarClock,
+  Share2,
 } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
 import { foodKnowledgeBase } from "@/data/foodKnowledgeBase";
@@ -27,6 +28,7 @@ interface FoodItemCardProps {
   onEdit: () => void;
   onCookEat: () => void;
   onDonate: () => void;
+  onShare?: () => void;
   onFreeze: () => void;
   onRemove: () => void;
 }
@@ -37,6 +39,7 @@ export function FoodItemCard({
   onEdit,
   onCookEat,
   onDonate,
+  onShare,
   onFreeze,
   onRemove,
 }: FoodItemCardProps) {
@@ -120,6 +123,11 @@ export function FoodItemCard({
               <DropdownMenuItem onClick={onDonate}>
                 <HeartHandshake className="mr-2 h-4 w-4" /> Donate
               </DropdownMenuItem>
+              {onShare && (
+                <DropdownMenuItem onClick={onShare}>
+                  <Share2 className="mr-2 h-4 w-4" /> Share to Community
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" /> Remove

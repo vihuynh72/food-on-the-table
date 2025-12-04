@@ -5,6 +5,29 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://ppxotwsjporgjskldbgo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweG90d3NqcG9yZ2pza2xkYmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMDQwMDEsImV4cCI6MjA3OTY4MDAwMX0.0yKzIijMLG78EtsvTT1mfvQ2OLqlu-f1Xcbyed0suaA";
 
+const isDev = typeof import.meta !== "undefined" ? import.meta.env.DEV : false;
+
+const loggingFetch: typeof fetch = async (input, init) => {
+  if (isDev) {
+    const method = init?.method ?? (input instanceof Request ? input.method : "GET");
+    const url = input instanceof Request ? input.url : String(input);
+    console.log("[Supabase request]", method, url);
+  }
+
+  try {
+    const response = await fetch(input as RequestInfo, init);
+    if (isDev) {
+      console.log("[Supabase response]", response.status, response.url);
+    }
+    return response;
+  } catch (error) {
+    if (isDev) {
+      console.error("[Supabase fetch error]", error);
+    }
+    throw error;
+  }
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -13,5 +36,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  },
+  global: {
+    fetch: loggingFetch,
   }
 });
