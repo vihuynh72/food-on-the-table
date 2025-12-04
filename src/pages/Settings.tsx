@@ -19,10 +19,7 @@ export default function Settings() {
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    if (!user) return; // ProfileGuard handles redirect
 
     // Fetch user profile
     const fetchProfile = async () => {

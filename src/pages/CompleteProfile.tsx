@@ -26,11 +26,7 @@ export default function CompleteProfile() {
   const [username, setUsername] = useState("");
   const [zipCode, setZipCode] = useState("");
 
-  useEffect(() => {
-    if (!session) {
-      navigate("/auth");
-    }
-  }, [session, navigate]);
+  // ProfileGuard handles auth redirects - no need for duplicate logic here
 
   const handleSignOut = async () => {
     await signOut();
