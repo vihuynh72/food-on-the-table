@@ -4,6 +4,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
+// Helper to wrap Supabase calls with a timeout to prevent infinite hangs
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 10000,
+  operation: string = "operation"
+): Promise<T> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`${operation} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+}
+
+// Helper to ensure we have a valid session before making requests
+async function ensureValidSession() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error("Session check error:", error);
+    throw new Error("Failed to verify session");
+  }
+  if (!session) {
+    throw new Error("No active session - please log in again");
+  }
+  return session;
+}
+
 export interface FoodItem {
   id: string;
   user_id: string;
@@ -63,7 +90,7 @@ export function useFoodInventory() {
     enabled: !!user,
   });
 
-  // Add item mutation
+  // Add item mutation with timeout protection
   const addItemMutation = useMutation({
     mutationFn: async (item: FoodItemInsert) => {
       if (!user) throw new Error("Not authenticated");
@@ -72,43 +99,50 @@ export function useFoodInventory() {
       console.log("User ID:", user.id);
 
       try {
-        const { data, error } = await supabase
-          .from("food_items")
-          .insert({
-            ...item,
-            user_id: user.id,
-          })
-          .select()
-          .single();
+        // Verify session is valid before attempting insert
+        await withTimeout(ensureValidSession(), 5000, "Session check");
+        
+        const insertPayload = {
+          ...item,
+          user_id: user.id,
+        };
+
+        console.log("Starting Supabase insert with payload:", insertPayload);
+
+        // Create a proper promise from the Supabase query
+        const supabasePromise = new Promise<{ data: FoodItem | null; error: Error | null }>(
+          async (resolve) => {
+            const result = await supabase
+              .from("food_items")
+              .insert(insertPayload)
+              .select()
+              .single();
+            resolve(result as { data: FoodItem | null; error: Error | null });
+          }
+        );
+
+        // Wrap in timeout to prevent infinite hangs
+        const { data, error } = await withTimeout(
+          supabasePromise,
+          10000,
+          "Database insert"
+        );
 
         console.log("Supabase response - data:", data, "error:", error);
 
         if (error) {
           console.error("Supabase insert error:", error);
-          toast({
-            title: "Error adding item",
-            description: error.message,
-            variant: "destructive",
-          });
           throw error;
         }
         
+        if (!data) {
+          throw new Error("No data returned from insert");
+        }
+        
         console.log("Item added successfully:", data);
-        toast({
-          title: "Item added",
-          description: `${item.name} has been added to your inventory.`,
-        });
-        return data as FoodItem;
+        return data;
       } catch (err) {
         console.error("Caught error in mutationFn:", err);
-        // If it's not a Supabase error (which already toasted), toast here
-        if (err instanceof Error && !('code' in err)) {
-             toast({
-            title: "Error adding item",
-            description: "An unexpected error occurred.",
-            variant: "destructive",
-          });
-        }
         throw err;
       }
     },
@@ -120,7 +154,7 @@ export function useFoodInventory() {
         description: `${data.name} added to your inventory`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("onError called with:", error);
       toast({
         title: "Error",

@@ -14,177 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      community_posts: {
-        Row: {
-          id: string
-          user_id: string | null
-          type: 'offer' | 'request'
-          title: string
-          description: string | null
-          category: string | null
-          quantity_description: string | null
-          tags: string[] | null
-          total_portions: number | null
-          remaining_portions: number | null
-          best_before_at: string | null
-          available_from: string | null
-          available_until: string | null
-          status: 'active' | 'reserved' | 'picked_up' | 'expired' | 'cancelled' | null
-          location_lat: number | null
-          location_lng: number | null
-          location_label: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          type: 'offer' | 'request'
-          title: string
-          description?: string | null
-          category?: string | null
-          quantity_description?: string | null
-          tags?: string[] | null
-          total_portions?: number | null
-          remaining_portions?: number | null
-          best_before_at?: string | null
-          available_from?: string | null
-          available_until?: string | null
-          status?: 'active' | 'reserved' | 'picked_up' | 'expired' | 'cancelled' | null
-          location_lat?: number | null
-          location_lng?: number | null
-          location_label?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          type?: 'offer' | 'request'
-          title?: string
-          description?: string | null
-          category?: string | null
-          quantity_description?: string | null
-          tags?: string[] | null
-          total_portions?: number | null
-          remaining_portions?: number | null
-          best_before_at?: string | null
-          available_from?: string | null
-          available_until?: string | null
-          status?: 'active' | 'reserved' | 'picked_up' | 'expired' | 'cancelled' | null
-          location_lat?: number | null
-          location_lng?: number | null
-          location_label?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      community_post_photos: {
-        Row: {
-          id: string
-          post_id: string | null
-          url: string
-          alt: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          post_id?: string | null
-          url: string
-          alt?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          post_id?: string | null
-          url?: string
-          alt?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_photos_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      community_likes: {
-        Row: {
-          post_id: string
-          user_id: string
-          created_at: string | null
-        }
-        Insert: {
-          post_id: string
-          user_id: string
-          created_at?: string | null
-        }
-        Update: {
-          post_id?: string
-          user_id?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      community_saves: {
-        Row: {
-          post_id: string
-          user_id: string
-          created_at: string | null
-        }
-        Insert: {
-          post_id: string
-          user_id: string
-          created_at?: string | null
-        }
-        Update: {
-          post_id?: string
-          user_id?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_saves_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       community_comments: {
         Row: {
+          body: string
+          created_at: string | null
           id: string
           post_id: string | null
           user_id: string | null
-          body: string
-          created_at: string | null
         }
         Insert: {
-          id?: string
-          post_id?: string | null
-          user_id?: string | null
           body: string
           created_at?: string | null
-        }
-        Update: {
           id?: string
           post_id?: string | null
           user_id?: string | null
+        }
+        Update: {
           body?: string
           created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -193,36 +43,36 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       community_interests: {
         Row: {
-          id: string
-          post_id: string | null
-          giver_id: string | null
-          seeker_id: string | null
-          message: string | null
-          status: 'pending' | 'accepted' | 'cancelled' | 'completed' | null
           created_at: string | null
+          giver_id: string | null
+          id: string
+          message: string | null
+          post_id: string | null
+          seeker_id: string | null
+          status: string | null
         }
         Insert: {
-          id?: string
-          post_id?: string | null
-          giver_id?: string | null
-          seeker_id?: string | null
-          message?: string | null
-          status?: 'pending' | 'accepted' | 'cancelled' | 'completed' | null
           created_at?: string | null
+          giver_id?: string | null
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          seeker_id?: string | null
+          status?: string | null
         }
         Update: {
-          id?: string
-          post_id?: string | null
-          giver_id?: string | null
-          seeker_id?: string | null
-          message?: string | null
-          status?: 'pending' | 'accepted' | 'cancelled' | 'completed' | null
           created_at?: string | null
+          giver_id?: string | null
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          seeker_id?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -231,33 +81,165 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      community_likes: {
+        Row: {
+          created_at: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_post_photos: {
+        Row: {
+          alt: string | null
+          created_at: string | null
+          id: string
+          post_id: string | null
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_photos_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          available_from: string | null
+          available_until: string | null
+          best_before_at: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          location_label: string | null
+          location_lat: number | null
+          location_lng: number | null
+          quantity_description: string | null
+          remaining_portions: number | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          total_portions: number | null
+          type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          available_from?: string | null
+          available_until?: string | null
+          best_before_at?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          quantity_description?: string | null
+          remaining_portions?: number | null
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          total_portions?: number | null
+          type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          available_from?: string | null
+          available_until?: string | null
+          best_before_at?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location_label?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          quantity_description?: string | null
+          remaining_portions?: number | null
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          total_portions?: number | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       community_reports: {
         Row: {
+          created_at: string | null
+          details: string | null
           id: string
           post_id: string | null
-          reporter_id: string | null
           reason: string | null
-          details: string | null
-          created_at: string | null
+          reporter_id: string | null
         }
         Insert: {
+          created_at?: string | null
+          details?: string | null
           id?: string
           post_id?: string | null
-          reporter_id?: string | null
           reason?: string | null
-          details?: string | null
-          created_at?: string | null
+          reporter_id?: string | null
         }
         Update: {
+          created_at?: string | null
+          details?: string | null
           id?: string
           post_id?: string | null
-          reporter_id?: string | null
           reason?: string | null
-          details?: string | null
-          created_at?: string | null
+          reporter_id?: string | null
         }
         Relationships: [
           {
@@ -266,7 +248,33 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      community_saves: {
+        Row: {
+          created_at: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_saves_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       donations: {
@@ -364,40 +372,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           updated_at: string
           user_id: string
           username: string | null
           zip_code: string | null
-          first_name: string | null
-          last_name: string | null
-          avatar_url: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
           zip_code?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          avatar_url?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
           zip_code?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          avatar_url?: string | null
         }
         Relationships: []
       }
