@@ -44,7 +44,7 @@ export function CommunityCarousel({ posts, onInterest, onSlideChange }: Communit
       src: post.community_post_photos?.[0]?.url || undefined,
       onClick: () => onInterest(post),
       // Rich data
-      type: post.type,
+      type: post.type as "offer" | "request",
       category: post.category || 'Other',
       distance: post.location_label || undefined,
       postedAt: formatDistanceToNow(new Date(post.created_at || new Date()), { addSuffix: true }),
