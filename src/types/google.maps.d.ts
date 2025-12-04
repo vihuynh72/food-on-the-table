@@ -13,7 +13,42 @@ declare global {
       mapTypeControl?: boolean;
       streetViewControl?: boolean;
       fullscreenControl?: boolean;
+      zoomControl?: boolean;
       styles?: google.maps.MapTypeStyle[];
+    }
+
+    enum Animation {
+      BOUNCE = 1,
+      DROP = 2,
+      k = 3,
+      j = 4
+    }
+
+    class Geocoder {
+      geocode(
+        request: GeocoderRequest,
+        callback?: (results: GeocoderResult[], status: GeocoderStatus) => void
+      ): Promise<{ results: GeocoderResult[] }>;
+    }
+
+    interface GeocoderRequest {
+      address?: string;
+      location?: LatLngLiteral;
+      placeId?: string;
+    }
+
+    interface GeocoderResult {
+      geometry: {
+        location: {
+          lat: () => number;
+          lng: () => number;
+        };
+      };
+    }
+
+    enum GeocoderStatus {
+      OK = 'OK',
+      ZERO_RESULTS = 'ZERO_RESULTS',
     }
 
     class Map {
@@ -38,6 +73,7 @@ declare global {
       title?: string;
       icon?: Symbol;
       zIndex?: number;
+      animation?: Animation;
     }
 
     class Circle {

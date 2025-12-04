@@ -13,6 +13,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [username, setUsername] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -27,11 +28,12 @@ export default function Settings() {
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('zip_code')
+        .select('username, zip_code')
         .eq('user_id', user.id)
         .single();
 
       if (data) {
+        setUsername(data.username || "");
         setZipCode(data.zip_code || "");
       }
       setIsFetching(false);
@@ -40,10 +42,28 @@ export default function Settings() {
     fetchProfile();
   }, [user, navigate]);
 
-  const handleUpdateZipCode = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!/^\d{5}$/.test(zipCode)) {
+    if (username.length < 3) {
+      toast({
+        title: "Invalid username",
+        description: "Username must be at least 3 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      toast({
+        title: "Invalid username",
+        description: "Username can only contain letters, numbers, and underscores",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (zipCode && !/^\d{5}$/.test(zipCode)) {
       toast({
         title: "Invalid zip code",
         description: "Zip code must be 5 digits",
@@ -56,21 +76,30 @@ export default function Settings() {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ zip_code: zipCode })
+      .update({ username, zip_code: zipCode || null })
       .eq('user_id', user!.id);
 
     setIsLoading(false);
 
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update zip code",
-        variant: "destructive",
-      });
+      // Check for unique constraint violation
+      if (error.code === '23505') {
+        toast({
+          title: "Username taken",
+          description: "That username is already in use. Please choose another.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update profile",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Success",
-        description: "Zip code updated successfully",
+        description: "Profile updated successfully",
       });
     }
   };
@@ -95,10 +124,10 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
-            <CardDescription>Update your location to find nearby donation centers</CardDescription>
+            <CardDescription>Manage your profile and location settings</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdateZipCode} className="space-y-4">
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -108,6 +137,19 @@ export default function Settings() {
                   disabled
                   className="bg-muted"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="foodlover123"
+                  maxLength={20}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                />
+                <p className="text-xs text-muted-foreground">This is how others see you in the community</p>
               </div>
               
               <div className="space-y-2">
@@ -123,7 +165,7 @@ export default function Settings() {
               </div>
 
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Updating..." : "Update Zip Code"}
+                {isLoading ? "Updating..." : "Save Changes"}
               </Button>
             </form>
           </CardContent>

@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -42,17 +43,14 @@ export interface FoodItemUpdate {
 
 export function useFoodInventory() {
   const { user } = useAuth();
-  const [items, setItems] = useState<FoodItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchItems = useCallback(async () => {
-    if (!user) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
+  // Fetch items using React Query
+  const { data: items = [], isLoading: loading } = useQuery({
+    queryKey: ["food_items", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
 
-    try {
       const { data, error } = await supabase
         .from("food_items")
         .select("*")
@@ -60,29 +58,18 @@ export function useFoodInventory() {
         .order("expiry_date", { ascending: true });
 
       if (error) throw error;
-      setItems((data as FoodItem[]) ?? []);
-    } catch (error) {
-      console.error("Error fetching food items:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load food inventory",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+      return (data as FoodItem[]) ?? [];
+    },
+    enabled: !!user,
+  });
 
-  const addItem = useCallback(
-    async (item: FoodItemInsert) => {
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to add items",
-          variant: "destructive",
-        });
-        return null;
-      }
+  // Add item mutation
+  const addItemMutation = useMutation({
+    mutationFn: async (item: FoodItemInsert) => {
+      if (!user) throw new Error("Not authenticated");
+
+      console.log("Adding food item:", item);
+      console.log("User ID:", user.id);
 
       try {
         const { data, error } = await supabase
@@ -94,29 +81,141 @@ export function useFoodInventory() {
           .select()
           .single();
 
-        if (error) throw error;
+        console.log("Supabase response - data:", data, "error:", error);
 
-        setItems((prev) => [...prev, data as FoodItem].sort(
-          (a, b) => new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()
-        ));
-
+        if (error) {
+          console.error("Supabase insert error:", error);
+          toast({
+            title: "Error adding item",
+            description: error.message,
+            variant: "destructive",
+          });
+          throw error;
+        }
+        
+        console.log("Item added successfully:", data);
         toast({
-          title: "Success",
-          description: `${item.name} added to your inventory`,
+          title: "Item added",
+          description: `${item.name} has been added to your inventory.`,
         });
-
         return data as FoodItem;
-      } catch (error) {
-        console.error("Error adding food item:", error);
+      } catch (err) {
+        console.error("Caught error in mutationFn:", err);
+        // If it's not a Supabase error (which already toasted), toast here
+        if (err instanceof Error && !('code' in err)) {
+             toast({
+            title: "Error adding item",
+            description: "An unexpected error occurred.",
+            variant: "destructive",
+          });
+        }
+        throw err;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("onSuccess called with:", data);
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
+      toast({
+        title: "Success",
+        description: `${data.name} added to your inventory`,
+      });
+    },
+    onError: (error: any) => {
+      console.error("onError called with:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to add item. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update item mutation
+  const updateItemMutation = useMutation({
+    mutationFn: async ({ id, update }: { id: string; update: FoodItemUpdate }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("food_items")
+        .update(update)
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as FoodItem;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
+      toast({
+        title: "Success",
+        description: "Item updated",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating food item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete item mutation
+  const deleteItemMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("food_items")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
+      toast({
+        title: "Success",
+        description: "Item removed from inventory",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addItem = useCallback(
+    async (item: FoodItemInsert) => {
+      if (!user) {
+        console.error("Attempted to add item without user authentication");
         toast({
           title: "Error",
-          description: "Failed to add item",
+          description: "You must be logged in to add items",
           variant: "destructive",
         });
         return null;
       }
+
+      try {
+        console.log("Calling addItemMutation with:", item);
+        const result = await addItemMutation.mutateAsync(item);
+        console.log("Mutation result:", result);
+        return result;
+      } catch (error) {
+        console.error("Caught error in addItem:", error);
+        throw error;
+      }
     },
-    [user]
+    [user, addItemMutation]
   );
 
   const updateItem = useCallback(
@@ -124,39 +223,13 @@ export function useFoodInventory() {
       if (!user) return false;
 
       try {
-        const { data, error } = await supabase
-          .from("food_items")
-          .update(update)
-          .eq("id", id)
-          .eq("user_id", user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setItems((prev) =>
-          prev
-            .map((item) => (item.id === id ? (data as FoodItem) : item))
-            .sort((a, b) => new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime())
-        );
-
-        toast({
-          title: "Success",
-          description: "Item updated",
-        });
-
+        await updateItemMutation.mutateAsync({ id, update });
         return true;
-      } catch (error) {
-        console.error("Error updating food item:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update item",
-          variant: "destructive",
-        });
+      } catch {
         return false;
       }
     },
-    [user]
+    [user, updateItemMutation]
   );
 
   const deleteItem = useCallback(
@@ -164,33 +237,13 @@ export function useFoodInventory() {
       if (!user) return false;
 
       try {
-        const { error } = await supabase
-          .from("food_items")
-          .delete()
-          .eq("id", id)
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        setItems((prev) => prev.filter((item) => item.id !== id));
-
-        toast({
-          title: "Success",
-          description: "Item removed from inventory",
-        });
-
+        await deleteItemMutation.mutateAsync(id);
         return true;
-      } catch (error) {
-        console.error("Error deleting item:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete item",
-          variant: "destructive",
-        });
+      } catch {
         return false;
       }
     },
-    [user]
+    [user, deleteItemMutation]
   );
 
   const deleteAllItems = useCallback(async () => {
@@ -204,7 +257,7 @@ export function useFoodInventory() {
 
       if (error) throw error;
 
-      setItems([]);
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
       toast({
         title: "Inventory Cleared",
         description: "All items have been removed from your inventory.",
@@ -219,7 +272,7 @@ export function useFoodInventory() {
       });
       return false;
     }
-  }, [user]);
+  }, [user, queryClient]);
 
   const freezeItem = useCallback(
     async (id: string) => {
@@ -237,9 +290,9 @@ export function useFoodInventory() {
     [items, updateItem]
   );
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  const fetchItems = useCallback(async () => {
+    queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
+  }, [queryClient, user]);
 
   // Calculate days until expiry
   const getItemsWithDaysLeft = useCallback(() => {

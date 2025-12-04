@@ -11,6 +11,7 @@ import { FoodItemCard } from "@/components/food/FoodItemCard";
 import { AddFoodModal } from "@/components/food/AddFoodModal";
 import { EditFoodModal } from "@/components/food/EditFoodModal";
 import { RecipeSuggestionsModal } from "@/components/food/RecipeSuggestionsModal";
+import { CreatePostModal } from "@/components/community/CreatePostModal";
 import { DeleteConfirmDialog } from "@/components/food/DeleteConfirmDialog";
 import { ExpiringItemsBanner } from "@/components/food/ExpiringItemsBanner";
 import { toast } from "@/hooks/use-toast";
@@ -63,6 +64,7 @@ export default function MyFood() {
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [editItem, setEditItem] = useState<FoodItem | null>(null);
   const [recipeItem, setRecipeItem] = useState<FoodItem | null>(null);
+  const [shareItem, setShareItem] = useState<FoodItem | null>(null);
   const [deleteItemData, setDeleteItemData] = useState<FoodItem | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
@@ -318,6 +320,7 @@ export default function MyFood() {
                     onEdit={() => setEditItem(item)}
                     onCookEat={() => setRecipeItem(item)}
                     onDonate={() => handleDonate(item)}
+                    onShare={() => setShareItem(item)}
                     onFreeze={() => handleFreeze(item)}
                     onRemove={() => setDeleteItemData(item)}
                   />
@@ -347,6 +350,16 @@ export default function MyFood() {
         open={!!recipeItem}
         onOpenChange={(open) => !open && setRecipeItem(null)}
         onMarkAsEaten={handleMarkAsEaten}
+      />
+
+      <CreatePostModal
+        open={!!shareItem}
+        onOpenChange={(open) => !open && setShareItem(null)}
+        prefillData={shareItem ? {
+          title: shareItem.name,
+          category: shareItem.category || undefined,
+          expiryDate: new Date(shareItem.expiry_date)
+        } : undefined}
       />
 
       <DeleteConfirmDialog

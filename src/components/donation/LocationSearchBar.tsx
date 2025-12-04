@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { loadGoogleMaps } from "@/lib/googleMaps";
 
 interface LocationSearchBarProps {
   onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
@@ -13,15 +14,15 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Wait for Google Maps to be loaded
-    const checkGoogleMaps = setInterval(() => {
-      if (window.google?.maps?.places) {
-        setIsReady(true);
-        clearInterval(checkGoogleMaps);
-      }
-    }, 100);
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.error("Google Maps API key missing");
+      return;
+    }
 
-    return () => clearInterval(checkGoogleMaps);
+    loadGoogleMaps(apiKey)
+      .then(() => setIsReady(true))
+      .catch((error) => console.error("Failed to load Google Maps:", error));
   }, []);
 
   useEffect(() => {

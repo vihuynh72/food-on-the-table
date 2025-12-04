@@ -16,6 +16,7 @@ import { HeroMeshGradient } from "@/components/ui/hero-mesh-gradient";
 const signupSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  username: z.string().trim().min(3, { message: "Username must be at least 3 characters" }).max(20, { message: "Username must be at most 20 characters" }).regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores" }),
   zipCode: z.string().trim().regex(/^\d{5}$/, { message: "Zip code must be 5 digits" }),
 });
 
@@ -36,6 +37,7 @@ export default function Auth() {
   // Signup state
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
   const [zipCode, setZipCode] = useState("");
 
   useEffect(() => {
@@ -109,6 +111,7 @@ export default function Auth() {
       const validated = signupSchema.parse({ 
         email: signupEmail, 
         password: signupPassword,
+        username: signupUsername,
         zipCode 
       });
       
@@ -121,6 +124,7 @@ export default function Auth() {
           emailRedirectTo: redirectUrl,
           data: {
             zip_code: validated.zipCode,
+            username: validated.username,
           }
         }
       });
@@ -140,10 +144,10 @@ export default function Auth() {
           });
         }
       } else if (data.user) {
-        // Update profile with zip code
+        // Update profile with zip code and username
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ zip_code: validated.zipCode })
+          .update({ zip_code: validated.zipCode, username: validated.username })
           .eq('user_id', data.user.id);
 
         if (profileError) {
@@ -359,6 +363,19 @@ export default function Auth() {
                          onChange={(e) => setSignupPassword(e.target.value)}
                          required
                        />
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="signup-username">Username</Label>
+                       <Input
+                         id="signup-username"
+                         type="text"
+                         placeholder="foodlover123"
+                         maxLength={20}
+                         value={signupUsername}
+                         onChange={(e) => setSignupUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                         required
+                       />
+                       <p className="text-xs text-muted-foreground">Letters, numbers, and underscores only</p>
                      </div>
                      <div className="space-y-2">
                        <Label htmlFor="zip-code">Zip Code</Label>

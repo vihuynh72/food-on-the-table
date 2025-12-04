@@ -12,7 +12,9 @@ import Learn from "./pages/Learn";
 import Settings from "./pages/Settings";
 import Donate from "./pages/Donate";
 import Auth from "./pages/Auth";
+import CompleteProfile from "./pages/CompleteProfile";
 import NotFound from "./pages/NotFound";
+import { ProfileGuard } from "@/components/ProfileGuard";
 
 const queryClient = new QueryClient();
 
@@ -23,18 +25,20 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/my-food" element={<MyFood />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/impact" element={<Impact />} />
-            <Route path="/learn" element={<Learn />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/donate" element={<Donate />} />
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ProfileGuard>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/my-food" element={<MyFood />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/impact" element={<Impact />} />
+              <Route path="/learn" element={<Learn />} />
+              <Route path="/donate" element={<Donate />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ProfileGuard>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
