@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
+  user_id: string;
   username: string | null;
   zip_code: string | null;
   email: string | null;
@@ -28,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    setIsProfileLoading(true);
+  const fetchProfile = async (userId: string, showLoading = true) => {
+    if (showLoading) setIsProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Error fetching profile:", error);
       setProfile(null);
     } finally {
-      setIsProfileLoading(false);
+      if (showLoading) setIsProfileLoading(false);
     }
   };
 
@@ -67,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           // Don't await - let it run in background, but profile loading state handles UI
-          fetchProfile(session.user.id);
+          // Don't show loading spinner for token refreshes to avoid UI flicker/reset
+          const shouldShowLoading = event !== 'TOKEN_REFRESHED';
+          fetchProfile(session.user.id, shouldShowLoading);
         } else {
           setProfile(null);
           setIsProfileLoading(false);

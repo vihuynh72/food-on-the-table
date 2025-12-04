@@ -12,6 +12,12 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const onLocationSelectRef = useRef(onLocationSelect);
+
+  // Update ref when prop changes to avoid re-initializing autocomplete
+  useEffect(() => {
+    onLocationSelectRef.current = onLocationSelect;
+  }, [onLocationSelect]);
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -52,7 +58,7 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
         const lng = place.geometry.location.lng();
         const address = place.formatted_address || place.name || "Selected location";
 
-        onLocationSelect({ lat, lng, address });
+        onLocationSelectRef.current({ lat, lng, address });
         
         toast({
           title: "Location updated",
@@ -68,7 +74,7 @@ export function LocationSearchBar({ onLocationSelect }: LocationSearchBarProps) 
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, [isReady, onLocationSelect]);
+  }, [isReady]); // Removed onLocationSelect from dependencies
 
   return (
     <div className="relative">

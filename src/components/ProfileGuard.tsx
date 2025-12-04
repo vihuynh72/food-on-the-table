@@ -15,7 +15,9 @@ export function ProfileGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   // Combined loading state - wait for both auth and profile
-  const isFullyLoaded = !isLoading && !isProfileLoading;
+  // If we have a profile that matches the current user, we consider it loaded enough to render
+  // This prevents unmounting/remounting during background profile refreshes
+  const isFullyLoaded = !isLoading && (!isProfileLoading || (!!profile && profile.user_id === user?.id));
 
   useEffect(() => {
     // Don't make any routing decisions until everything is loaded

@@ -29,8 +29,9 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    'cooked_meal', 'produce', 'pantry', 'baked', 'baby', 'other'
+    'produce', 'bakery', 'pantry', 'dairy_eggs', 'meat_seafood', 'prepared_meals', 'frozen', 'beverages', 'other'
   ]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [distance, setDistance] = useState(5);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<CommunityPostWithUser | null>(null);
@@ -46,6 +47,7 @@ export default function Community() {
   } = useCommunityPosts({
     type: 'offer',
     category: selectedCategories,
+    tags: selectedTags,
     search: searchQuery,
     sortBy: activeTab === 'nearby' ? 'nearest' : 'newest',
     userLocation: position || undefined,
@@ -172,6 +174,8 @@ export default function Community() {
             <CommunityFilters
               selectedCategories={selectedCategories}
               onCategoryChange={setSelectedCategories}
+              selectedTags={selectedTags}
+              onTagChange={setSelectedTags}
               distance={distance}
               onDistanceChange={setDistance}
             />

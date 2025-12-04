@@ -16,23 +16,40 @@ import { Filter } from "lucide-react";
 interface CommunityFiltersProps {
   selectedCategories: string[];
   onCategoryChange: (categories: string[]) => void;
+  selectedTags: string[];
+  onTagChange: (tags: string[]) => void;
   distance: number;
   onDistanceChange: (distance: number) => void;
   className?: string;
 }
 
 const CATEGORIES = [
-  { id: 'cooked_meal', label: 'Cooked Meal' },
   { id: 'produce', label: 'Produce' },
+  { id: 'bakery', label: 'Bakery' },
   { id: 'pantry', label: 'Pantry' },
-  { id: 'baked', label: 'Baked Goods' },
-  { id: 'baby', label: 'Baby Food' },
+  { id: 'dairy_eggs', label: 'Dairy & Eggs' },
+  { id: 'meat_seafood', label: 'Meat & Seafood' },
+  { id: 'prepared_meals', label: 'Prepared Meals' },
+  { id: 'frozen', label: 'Frozen' },
+  { id: 'beverages', label: 'Beverages' },
   { id: 'other', label: 'Other' },
+];
+
+const DIETARY_TAGS = [
+  { id: 'Vegetarian', label: 'Vegetarian' },
+  { id: 'Vegan', label: 'Vegan' },
+  { id: 'Gluten-Free', label: 'Gluten-Free' },
+  { id: 'Dairy-Free', label: 'Dairy-Free' },
+  { id: 'Nut-Free', label: 'Nut-Free' },
+  { id: 'Halal', label: 'Halal' },
+  { id: 'Kosher', label: 'Kosher' },
 ];
 
 export function CommunityFilters({
   selectedCategories,
   onCategoryChange,
+  selectedTags,
+  onTagChange,
   distance,
   onDistanceChange,
   className
@@ -42,6 +59,14 @@ export function CommunityFilters({
       onCategoryChange(selectedCategories.filter(c => c !== categoryId));
     } else {
       onCategoryChange([...selectedCategories, categoryId]);
+    }
+  };
+
+  const handleTagToggle = (tagId: string) => {
+    if (selectedTags.includes(tagId)) {
+      onTagChange(selectedTags.filter(t => t !== tagId));
+    } else {
+      onTagChange([...selectedTags, tagId]);
     }
   };
 
@@ -65,6 +90,24 @@ export function CommunityFilters({
             <span>0 mi</span>
             <span>50 mi</span>
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Dietary</h3>
+        <div className="space-y-2">
+          {DIETARY_TAGS.map((tag) => (
+            <div key={tag.id} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`tag-${tag.id}`} 
+                checked={selectedTags.includes(tag.id)}
+                onCheckedChange={() => handleTagToggle(tag.id)}
+              />
+              <Label htmlFor={`tag-${tag.id}`} className="text-sm font-normal cursor-pointer">
+                {tag.label}
+              </Label>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -102,9 +145,9 @@ export function CommunityFilters({
             <Button variant="outline" size="sm" className="gap-2">
               <Filter className="w-4 h-4" />
               Filters
-              {selectedCategories.length > 0 && (
+              {(selectedCategories.length > 0 || selectedTags.length > 0) && (
                 <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full">
-                  {selectedCategories.length}
+                  {selectedCategories.length + selectedTags.length}
                 </Badge>
               )}
             </Button>
