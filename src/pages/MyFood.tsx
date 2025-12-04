@@ -16,6 +16,7 @@ import { DeleteConfirmDialog } from "@/components/food/DeleteConfirmDialog";
 import { ExpiringItemsBanner } from "@/components/food/ExpiringItemsBanner";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackImpactEvent } from "@/lib/impact/trackImpactEvent";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -141,7 +142,16 @@ export default function MyFood() {
   };
 
   const handleMarkAsEaten = async () => {
-    if (recipeItem) {
+    if (recipeItem && user) {
+      // Track impact before deleting
+      await trackImpactEvent({
+        userId: user.id,
+        eventType: "myfood_eaten",
+        sourceTable: "food_items",
+        sourceId: recipeItem.id,
+        category: recipeItem.category || undefined,
+        quantity: recipeItem.quantity || "1 serving",
+      });
       await deleteItem(recipeItem.id);
       setRecipeItem(null);
     }

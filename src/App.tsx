@@ -16,7 +16,13 @@ import CompleteProfile from "./pages/CompleteProfile";
 import NotFound from "./pages/NotFound";
 import { ProfileGuard } from "@/components/ProfileGuard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, Upload, X } from "lucide-react";
+import { Loader2, MapPin, Upload, X, Trash2 } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { LocationSearchBar } from "@/components/donation/LocationSearchBar";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { CommunityPostWithUser } from "@/types/community";
+
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -39,18 +41,28 @@ interface CreatePostModalProps {
     expiryDate?: Date;
   };
   postToEdit?: CommunityPostWithUser | null;
+  onDelete?: (post: CommunityPostWithUser) => void;
 }
 
-export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }: CreatePostModalProps) {
+const DIETARY_TAGS = [
+  { id: 'Vegetarian', label: 'Vegetarian' },
+  { id: 'Vegan', label: 'Vegan' },
+  { id: 'Gluten-Free', label: 'Gluten-Free' },
+  { id: 'Dairy-Free', label: 'Dairy-Free' },
+  { id: 'Nut-Free', label: 'Nut-Free' },
+  { id: 'Halal', label: 'Halal' },
+  { id: 'Kosher', label: 'Kosher' },
+];
+
+export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, onDelete }: CreatePostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { position: userPosition } = useUserLocation(open);
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
 
   // Form State
-  const [type, setType] = useState<'offer' | 'request'>('offer');
+  const [type] = useState<'offer'>('offer');
   const [title, setTitle] = useState(prefillData?.title || "");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(prefillData?.category || "");
@@ -65,18 +77,18 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [zipCode, setZipCode] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Initialize location with user position if available
   useEffect(() => {
-    if (userPosition && !selectedLocation && type === 'offer' && !postToEdit) {
+    if (userPosition && !selectedLocation && !postToEdit) {
       setSelectedLocation(userPosition);
     }
-  }, [userPosition, type, postToEdit]);
+  }, [userPosition, postToEdit]);
 
   // Populate form when editing
   useEffect(() => {
     if (postToEdit) {
-      setType(postToEdit.type as 'offer' | 'request');
       setTitle(postToEdit.title);
       setDescription(postToEdit.description || "");
       setCategory(postToEdit.category || "");
@@ -91,9 +103,11 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
       if (postToEdit.community_post_photos) {
         setPhotoPreviews(postToEdit.community_post_photos.map(p => p.url));
       }
+      if (postToEdit.tags) {
+        setSelectedTags(postToEdit.tags);
+      }
     } else if (!open) {
       // Reset form when closed
-      setStep(1);
       setTitle("");
       setDescription("");
       setPhotos([]);
@@ -101,6 +115,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
       setQuantity("");
       setLocationLabel("");
       setSelectedLocation(null);
+      setSelectedTags([]);
     }
   }, [postToEdit, open]);
 
@@ -148,10 +163,23 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
     setPhotoPreviews(newPreviews);
   };
 
+  const handleTagToggle = (tagId: string) => {
+    if (selectedTags.includes(tagId)) {
+      setSelectedTags(selectedTags.filter(t => t !== tagId));
+    } else {
+      setSelectedTags([...selectedTags, tagId]);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     if (!title) {
       toast({ title: "Title is required", variant: "destructive" });
+      return;
+    }
+
+    if (!selectedLocation && !userPosition) {
+      toast({ title: "Location is required", description: "Please select a location or use your current location.", variant: "destructive" });
       return;
     }
 
@@ -168,11 +196,12 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
         total_portions: parseInt(quantity) || 1,
         remaining_portions: parseInt(quantity) || 1,
         quantity_description: quantity || null,
-        best_before_at: type === 'offer' && expiryDate ? new Date(expiryDate).toISOString() : null,
+        best_before_at: expiryDate ? new Date(expiryDate).toISOString() : null,
         location_lat: selectedLocation?.lat || userPosition?.lat || null,
         location_lng: selectedLocation?.lng || userPosition?.lng || null,
-        location_label: locationLabel || (type === 'request' ? zipCode : "Nearby"),
-        status: 'active' as const
+        location_label: locationLabel || "Nearby",
+        status: 'active' as const,
+        tags: selectedTags
       };
       
       console.log('Saving post with data:', postData);
@@ -207,7 +236,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
       console.log('Post created successfully:', post);
 
       // 2. Upload Photos (Only for offers)
-      if (type === 'offer' && photos.length > 0 && post) {
+      if (photos.length > 0 && post) {
         const uploadPromises = photos.map(async (photo) => {
           const fileExt = photo.name.split('.').pop();
           const fileName = `${post.id}/${Math.random()}.${fileExt}`;
@@ -246,11 +275,11 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
       
       onOpenChange(false);
       // Reset form
-      setStep(1);
       setTitle("");
       setDescription("");
       setPhotos([]);
       setPhotoPreviews([]);
+      setSelectedTags([]);
 
     } catch (error: any) {
       console.error("Error creating post:", error);
@@ -270,195 +299,199 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
         <DialogHeader>
           <DialogTitle>{postToEdit ? "Edit Post" : "Share with Community"}</DialogTitle>
           <DialogDescription>
-            {step === 1 ? (postToEdit ? "Update details" : "What would you like to share?") : "Add some details"}
+            {postToEdit ? "Update details" : "What would you like to share?"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {step === 1 && (
-            <>
-              <RadioGroup value={type} onValueChange={(v: 'offer' | 'request') => setType(v)} className="grid grid-cols-2 gap-4">
-                <div>
-                  <RadioGroupItem value="offer" id="offer" className="peer sr-only" />
-                  <Label
-                    htmlFor="offer"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span className="text-2xl mb-2">🎁</span>
-                    Offer Food
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem value="request" id="request" className="peer sr-only" />
-                  <Label
-                    htmlFor="request"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <span className="text-2xl mb-2">🙏</span>
-                    Request Food
-                  </Label>
-                </div>
-              </RadioGroup>
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input 
+              id="title" 
+              placeholder="e.g., Fresh Tomatoes, Canned Beans" 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input 
-                  id="title" 
-                  placeholder="e.g., Fresh Tomatoes, Canned Beans" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="produce">Produce</SelectItem>
+                <SelectItem value="bakery">Bakery</SelectItem>
+                <SelectItem value="pantry">Pantry</SelectItem>
+                <SelectItem value="dairy_eggs">Dairy & Eggs</SelectItem>
+                <SelectItem value="meat_seafood">Meat & Seafood</SelectItem>
+                <SelectItem value="prepared_meals">Prepared Meals</SelectItem>
+                <SelectItem value="frozen">Frozen</SelectItem>
+                <SelectItem value="beverages">Beverages</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cooked_meal">Cooked Meal</SelectItem>
-                    <SelectItem value="produce">Produce</SelectItem>
-                    <SelectItem value="pantry">Pantry</SelectItem>
-                    <SelectItem value="baked">Baked Goods</SelectItem>
-                    <SelectItem value="baby">Baby Food</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
+              id="description" 
+              placeholder="Describe the food, quantity, and condition..." 
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
 
-          {step === 2 && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea 
-                  id="description" 
-                  placeholder="Describe the food, quantity, and condition..." 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="quantity">How much?</Label>
+              <Input 
+                id="quantity" 
+                type="text" 
+                placeholder="e.g. 2 bags, 500g" 
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expiry">Best Before</Label>
+              <Input 
+                id="expiry" 
+                type="datetime-local" 
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">How much?</Label>
-                  <Input 
-                    id="quantity" 
-                    type="text" 
-                    placeholder="e.g. 2 bags, 500g, 3 servings" 
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+          <div className="space-y-2">
+            <Label>Dietary Information</Label>
+            <div className="flex flex-wrap gap-3">
+              {DIETARY_TAGS.map((tag) => (
+                <div key={tag.id} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`post-tag-${tag.id}`} 
+                    checked={selectedTags.includes(tag.id)}
+                    onCheckedChange={() => handleTagToggle(tag.id)}
                   />
+                  <Label htmlFor={`post-tag-${tag.id}`} className="text-sm font-normal cursor-pointer">
+                    {tag.label}
+                  </Label>
                 </div>
-                {type === 'offer' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">Best Before</Label>
-                    <Input 
-                      id="expiry" 
-                      type="datetime-local" 
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
+              ))}
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label>Location</Label>
-                {type === 'offer' ? (
-                  <div className="space-y-2">
-                    <LocationSearchBar 
-                      onLocationSelect={(loc) => {
-                        setSelectedLocation({ lat: loc.lat, lng: loc.lng });
-                        setLocationLabel(loc.address);
-                      }} 
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="shrink-0" 
-                        type="button" 
-                        onClick={() => {
-                          if (userPosition) {
-                            setSelectedLocation(userPosition);
-                            setLocationLabel("Current Location");
-                          }
-                        }}
-                      >
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Use Current Location
-                      </Button>
-                      <Input 
-                        placeholder="Location label (e.g. Near Central Park)" 
-                        value={locationLabel}
-                        onChange={(e) => setLocationLabel(e.target.value)}
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Input 
-                      placeholder="Enter Zip Code (e.g. 90210)" 
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
-                      onBlur={handleZipCodeBlur}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      For privacy, only your approximate location (Zip Code) will be shown.
-                    </p>
-                  </div>
-                )}
-                {selectedLocation && <p className="text-xs text-muted-foreground">Coordinates set: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}</p>}
-              </div>
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <div className="space-y-2">
+              <LocationSearchBar 
+                onLocationSelect={(loc) => {
+                  setSelectedLocation({ lat: loc.lat, lng: loc.lng });
+                  setLocationLabel(loc.address);
+                }} 
+              />
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="shrink-0" 
+                  type="button" 
+                  onClick={async () => {
+                    if (!userPosition) {
+                      toast({ title: "Location not available", description: "Please enable location services.", variant: "destructive" });
+                      return;
+                    }
 
-              {type === 'offer' && (
-                <div className="space-y-2">
-                  <Label>Photos</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {photoPreviews.map((src, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-md overflow-hidden border">
-                        <img src={src} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => removePhoto(idx)}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {photoPreviews.length < 5 && (
-                      <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
-                        <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                        <span className="text-xs text-muted-foreground">Add Photo</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-                      </label>
-                    )}
-                  </div>
+                    setSelectedLocation(userPosition);
+                    setLocationLabel("Getting address...");
+                    
+                    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                    if (!apiKey) {
+                        setLocationLabel("Current Location");
+                        return;
+                    }
+
+                    try {
+                      await loadGoogleMaps(apiKey);
+                      const geocoder = new window.google.maps.Geocoder();
+                      const { results } = await geocoder.geocode({ location: userPosition });
+                      if (results && results[0]) {
+                        setLocationLabel(results[0].formatted_address);
+                      } else {
+                        setLocationLabel("Current Location");
+                      }
+                    } catch (error) {
+                      console.error("Reverse geocoding failed:", error);
+                      setLocationLabel("Current Location");
+                    }
+                  }}
+                >
+                  <MapPin className="w-3 h-3 mr-1" />
+                  Use Current Location
+                </Button>
+                <Input 
+                  placeholder="Location label (e.g. Near Central Park)" 
+                  value={locationLabel}
+                  onChange={(e) => setLocationLabel(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+            </div>
+            {selectedLocation && <p className="text-xs text-muted-foreground">Coordinates set: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Photos</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {photoPreviews.map((src, idx) => (
+                <div key={idx} className="relative aspect-square rounded-md overflow-hidden border">
+                  <img src={src} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => removePhoto(idx)}
+                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
+              ))}
+              {photoPreviews.length < 5 && (
+                <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer bg-muted/5 transition-colors">
+                  <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">Add Photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+                </label>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
 
-        <DialogFooter className="flex justify-between sm:justify-between">
-          {step === 2 ? (
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-          ) : (
-            <div />
-          )}
+        <DialogFooter className="flex justify-between sm:justify-between items-center">
+          <div className="flex gap-2">
+            {postToEdit && onDelete && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10" 
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+                    onDelete(postToEdit);
+                    onOpenChange(false);
+                  }
+                }}
+                title="Delete Post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
           
-          {step === 1 ? (
-            <Button onClick={() => setStep(2)}>Next</Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {postToEdit ? "Update Post" : "Share Post"}
-            </Button>
-          )}
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {postToEdit ? "Update Post" : "Share Post"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

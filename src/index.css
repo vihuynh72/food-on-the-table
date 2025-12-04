@@ -98,8 +98,8 @@ All colors MUST be HSL.
     --desert-sand: 15 50% 60%;
 
     /* Dark gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(var(--raffia)), hsl(var(--pine-glade)));
-    --gradient-card: linear-gradient(180deg, hsl(var(--pine-glade)), hsl(var(--raffia)));
+    --gradient-hero-dark: linear-gradient(135deg, hsl(var(--raffia)), hsl(var(--pine-glade)));
+    --gradient-card-dark: linear-gradient(180deg, hsl(var(--pine-glade)), hsl(var(--raffia)));
 
     /* Dark shadows */
     --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
@@ -212,4 +212,10 @@ All colors MUST be HSL.
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Fix for Google Maps Autocomplete dropdown in Modals */
+.pac-container {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
 }

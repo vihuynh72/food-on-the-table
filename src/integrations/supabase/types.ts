@@ -366,7 +366,7 @@ export type Database = {
           quantity?: string | null
           storage?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id: string
         }
         Relationships: []
       }
@@ -442,6 +442,197 @@ export type Database = {
         }
         Relationships: []
       }
+      impact_badges: {
+        Row: {
+          created_at: string | null
+          criteria: Json | null
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          criteria?: Json | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          criteria?: Json | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      impact_community_totals: {
+        Row: {
+          co2_kg_avoided: number
+          id: string
+          kg_saved: number
+          meals_saved: number
+          money_saved: number
+          period_key: string
+          shares_completed: number
+          total_points: number
+          updated_at: string | null
+        }
+        Insert: {
+          co2_kg_avoided?: number
+          id?: string
+          kg_saved?: number
+          meals_saved?: number
+          money_saved?: number
+          period_key: string
+          shares_completed?: number
+          total_points?: number
+          updated_at?: string | null
+        }
+        Update: {
+          co2_kg_avoided?: number
+          id?: string
+          kg_saved?: number
+          meals_saved?: number
+          money_saved?: number
+          period_key?: string
+          shares_completed?: number
+          total_points?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      impact_events: {
+        Row: {
+          base_points: number
+          co2_kg_avoided: number | null
+          created_at: string | null
+          event_type: string
+          final_points: number
+          id: string
+          kg_saved: number | null
+          metadata: Json | null
+          money_saved: number | null
+          multiplier: number
+          servings_saved: number | null
+          source_id: string | null
+          source_table: string | null
+          user_id: string
+        }
+        Insert: {
+          base_points?: number
+          co2_kg_avoided?: number | null
+          created_at?: string | null
+          event_type: string
+          final_points?: number
+          id?: string
+          kg_saved?: number | null
+          metadata?: Json | null
+          money_saved?: number | null
+          multiplier?: number
+          servings_saved?: number | null
+          source_id?: string | null
+          source_table?: string | null
+          user_id: string
+        }
+        Update: {
+          base_points?: number
+          co2_kg_avoided?: number | null
+          created_at?: string | null
+          event_type?: string
+          final_points?: number
+          id?: string
+          kg_saved?: number | null
+          metadata?: Json | null
+          money_saved?: number | null
+          multiplier?: number
+          servings_saved?: number | null
+          source_id?: string | null
+          source_table?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      impact_user_badges: {
+        Row: {
+          awarded_at: string | null
+          badge_id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          badge_id: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string | null
+          badge_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "impact_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_user_totals: {
+        Row: {
+          co2_kg_avoided: number
+          current_streak_days: number
+          kg_saved: number
+          last_impact_at: string | null
+          level: number
+          longest_streak_days: number
+          meals_saved: number
+          money_saved: number
+          neighbors_helped: number
+          shares_completed: number
+          total_points: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          co2_kg_avoided?: number
+          current_streak_days?: number
+          kg_saved?: number
+          last_impact_at?: string | null
+          level?: number
+          longest_streak_days?: number
+          meals_saved?: number
+          money_saved?: number
+          neighbors_helped?: number
+          shares_completed?: number
+          total_points?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          co2_kg_avoided?: number
+          current_streak_days?: number
+          kg_saved?: number
+          last_impact_at?: string | null
+          level?: number
+          longest_streak_days?: number
+          meals_saved?: number
+          money_saved?: number
+          neighbors_helped?: number
+          shares_completed?: number
+          total_points?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -471,7 +662,7 @@ export type Tables<
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

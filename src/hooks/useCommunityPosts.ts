@@ -5,6 +5,7 @@ import { CommunityPostWithUser } from "@/types/community";
 interface UseCommunityPostsOptions {
   type?: 'offer' | 'request' | 'all';
   category?: string[];
+  tags?: string[];
   search?: string;
   sortBy?: 'newest' | 'ending_soon' | 'nearest';
   userLocation?: { lat: number; lng: number };
@@ -30,9 +31,9 @@ function deg2rad(deg: number) {
   return deg * (Math.PI / 180);
 }
 
-export function useCommunityPosts({ type, category, search, sortBy, userLocation, userId, savedByUserId, distance }: UseCommunityPostsOptions = {}) {
+export function useCommunityPosts({ type, category, tags, search, sortBy, userLocation, userId, savedByUserId, distance }: UseCommunityPostsOptions = {}) {
   return useQuery({
-    queryKey: ['community_posts', type, category, search, sortBy, userLocation, userId, savedByUserId, distance],
+    queryKey: ['community_posts', type, category, tags, search, sortBy, userLocation, userId, savedByUserId, distance],
     queryFn: async () => {
       // First, fetch posts
       let query = supabase
@@ -67,8 +68,8 @@ export function useCommunityPosts({ type, category, search, sortBy, userLocation
       }
 
       // Only filter by category if some (but not all) are selected
-      // If all 6 categories are selected, don't filter (show everything including null categories)
-      const ALL_CATEGORIES = ['cooked_meal', 'produce', 'pantry', 'baked', 'baby', 'other'];
+      // If all categories are selected, don't filter (show everything including null categories)
+      const ALL_CATEGORIES = ['produce', 'bakery', 'pantry', 'dairy_eggs', 'meat_seafood', 'prepared_meals', 'frozen', 'beverages', 'other'];
       const hasAllCategories = category && category.length >= ALL_CATEGORIES.length;
       
       if (category && category.length > 0 && !hasAllCategories) {
@@ -76,6 +77,12 @@ export function useCommunityPosts({ type, category, search, sortBy, userLocation
         // Note: .in() with nulls is tricky in Supabase/PostgREST. 
         // We'll stick to simple IN for now, assuming most posts have categories or user selects "Other"
         query = query.in('category', category);
+      }
+
+      if (tags && tags.length > 0) {
+        // Filter by tags (dietary restrictions)
+        // Use contains operator for array column
+        query = query.contains('tags', tags);
       }
 
       if (search) {

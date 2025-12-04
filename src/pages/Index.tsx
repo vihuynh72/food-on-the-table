@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFoodInventory } from "@/hooks/useFoodInventory";
+import { HomeImpactSection } from "@/components/home/HomeImpactSection";
 
 const mockGalleryItems: GalleryItem[] = [
   {
@@ -292,32 +293,7 @@ export default function Index() {
         </section>
 
         {/* Impact Snapshot */}
-        <section className="space-y-6">
-          <h2 className="text-foreground text-2xl font-bold">Your Impact This Month</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard
-              title="Food Saved"
-              value="5 kg"
-              subtitle="↑ 12% from last month"
-              icon={Apple}
-              iconColor="text-secondary"
-            />
-            <StatCard
-              title="CO₂ Reduced"
-              value="12 kg"
-              subtitle="↑ 15% from last month"
-              icon={Trophy}
-              iconColor="text-primary"
-            />
-            <StatCard
-              title="Money Saved"
-              value="$23"
-              subtitle="↑ 8% from last month"
-              icon={Users}
-              iconColor="text-accent"
-            />
-          </div>
-        </section>
+        <HomeImpactSection />
       </main>
 
       {/* Add Food Modal */}

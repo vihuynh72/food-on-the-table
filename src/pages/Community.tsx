@@ -28,15 +28,10 @@ export default function Community() {
   const [activeTab, setActiveTab] = useState("nearby");
   const [searchQuery, setSearchQuery] = useState("");
   
-  // When "requests" tab is active, force type to 'request'
-  const getEffectiveType = () => {
-    if (activeTab === 'requests') return 'request';
-    return selectedType;
-  };
-  const [selectedType, setSelectedType] = useState<'offer' | 'request' | 'all'>('all');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    'cooked_meal', 'produce', 'pantry', 'baked', 'baby', 'other'
+    'produce', 'bakery', 'pantry', 'dairy_eggs', 'meat_seafood', 'prepared_meals', 'frozen', 'beverages', 'other'
   ]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [distance, setDistance] = useState(5);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<CommunityPostWithUser | null>(null);
@@ -50,8 +45,9 @@ export default function Community() {
     isLoading, 
     error,
   } = useCommunityPosts({
-    type: getEffectiveType(),
+    type: 'offer',
     category: selectedCategories,
+    tags: selectedTags,
     search: searchQuery,
     sortBy: activeTab === 'nearby' ? 'nearest' : 'newest',
     userLocation: position || undefined,
@@ -68,7 +64,7 @@ export default function Community() {
   }, [posts]);
 
   // Debug logging
-  console.log('Community Debug:', { activeTab, selectedType, effectiveType: getEffectiveType(), selectedCategories, postsCount: posts.length, error });
+  console.log('Community Debug:', { activeTab, selectedCategories, postsCount: posts.length, error });
 
   // Handlers
   const handleInterest = (post: CommunityPostWithUser) => {
@@ -76,6 +72,14 @@ export default function Community() {
       toast({ title: "Please sign in", description: "You need to be signed in to express interest.", variant: "destructive" });
       return;
     }
+    
+    // If user is owner, go straight to edit
+    if (post.user_id === user.id) {
+      setPostToEdit(post);
+      setCreateModalOpen(true);
+      return;
+    }
+
     setSelectedPost(post);
     setDetailDrawerOpen(true);
   };
@@ -111,7 +115,7 @@ export default function Community() {
       toast({ title: "Error deleting post", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Post deleted" });
-      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['community_posts'] });
     }
   };
 
@@ -160,7 +164,6 @@ export default function Community() {
           <div className="flex justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="nearby">Nearby</TabsTrigger>
-              <TabsTrigger value="requests">Requests</TabsTrigger>
               <TabsTrigger value="my_posts" disabled={!user}>My Posts</TabsTrigger>
               <TabsTrigger value="saved" disabled={!user}>Saved</TabsTrigger>
             </TabsList>
@@ -169,10 +172,10 @@ export default function Community() {
           <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_300px] gap-6 items-start h-[calc(100vh-220px)]">
             {/* Left: Filters */}
             <CommunityFilters
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
               selectedCategories={selectedCategories}
               onCategoryChange={setSelectedCategories}
+              selectedTags={selectedTags}
+              onTagChange={setSelectedTags}
               distance={distance}
               onDistanceChange={setDistance}
             />
@@ -201,6 +204,7 @@ export default function Community() {
           if (!open) setPostToEdit(null);
         }}
         postToEdit={postToEdit}
+        onDelete={handleDelete}
       />
 
       <PostDetailDrawer 

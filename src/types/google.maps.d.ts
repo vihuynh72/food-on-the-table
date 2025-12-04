@@ -38,6 +38,7 @@ declare global {
     }
 
     interface GeocoderResult {
+      formatted_address?: string;
       geometry: {
         location: {
           lat: () => number;

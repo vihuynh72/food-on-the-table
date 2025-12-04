@@ -28,7 +28,7 @@ export function Navigation() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -68,7 +68,7 @@ export function Navigation() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">My Account</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {profile?.username ? `@${profile.username}` : user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -131,7 +131,7 @@ export function Navigation() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{user.email}</span>
+                        <span className="text-sm font-medium">{profile?.username ? `@${profile.username}` : user.email}</span>
                         <span className="text-xs text-muted-foreground">Member</span>
                       </div>
                     </div>
