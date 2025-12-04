@@ -2,32 +2,72 @@ import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Pages that require authentication
+const PROTECTED_ROUTES = ["/settings", "/my-food", "/complete-profile"];
+// Pages that should NOT be accessible when logged in
+const AUTH_ONLY_ROUTES = ["/auth"];
+// Public routes that anyone can access
+const PUBLIC_ROUTES = ["/", "/community", "/impact", "/learn", "/donate"];
+
 export function ProfileGuard({ children }: { children: React.ReactNode }) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, isProfileLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (isLoading) return;
+  // Combined loading state - wait for both auth and profile
+  const isFullyLoaded = !isLoading && !isProfileLoading;
 
-    // Only redirect if user is logged in
-    if (user) {
-      // If user is logged in but has no username, redirect to complete profile
-      // But allow them to stay on the complete profile page and auth page
-      if ((!profile?.username || !profile?.zip_code) && 
-          location.pathname !== "/complete-profile" && 
-          location.pathname !== "/auth") {
-        navigate("/complete-profile");
+  useEffect(() => {
+    // Don't make any routing decisions until everything is loaded
+    if (!isFullyLoaded) return;
+
+    const currentPath = location.pathname;
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => currentPath.startsWith(route));
+    const isAuthRoute = AUTH_ONLY_ROUTES.includes(currentPath);
+
+    // Case 1: User is NOT logged in
+    if (!user) {
+      // Redirect to auth if trying to access a protected route
+      if (isProtectedRoute) {
+        navigate("/auth", { replace: true });
       }
-      
-      // If user is logged in and has a username, redirect away from complete profile
-      if (profile?.username && profile?.zip_code && location.pathname === "/complete-profile") {
-        navigate("/");
-      }
+      // Otherwise, let them access public routes and auth page
+      return;
     }
 
-  }, [user, profile, isLoading, navigate, location.pathname]);
+    // Case 2: User IS logged in
+    // Redirect away from auth page
+    if (isAuthRoute) {
+      navigate("/", { replace: true });
+      return;
+    }
 
-  // Don't block rendering while loading
+    // Check if profile is incomplete
+    const profileIncomplete = !profile?.username || !profile?.zip_code;
+
+    // If profile incomplete, force to complete-profile (unless already there)
+    if (profileIncomplete && currentPath !== "/complete-profile") {
+      navigate("/complete-profile", { replace: true });
+      return;
+    }
+
+    // If profile IS complete, redirect away from complete-profile
+    if (!profileIncomplete && currentPath === "/complete-profile") {
+      navigate("/", { replace: true });
+      return;
+    }
+
+  }, [user, profile, isFullyLoaded, navigate, location.pathname]);
+
+  // Show a minimal loading state while determining auth status
+  // This prevents the flash/redirect loop
+  if (!isFullyLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
