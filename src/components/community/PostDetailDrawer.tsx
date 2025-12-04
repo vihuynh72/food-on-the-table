@@ -168,14 +168,18 @@ export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }:
             </div>
 
             {/* Interest Form */}
-            {showInterestForm ? (
-              <div className="space-y-3 bg-muted/30 p-4 rounded-lg border animate-in fade-in slide-in-from-bottom-4">
-                <h3 className="font-semibold text-sm">Send a message</h3>
-                <Textarea 
+            {user?.id === post.user_id ? (
+              <Button className="w-full h-12 text-lg" variant="outline" onClick={() => onEdit?.(post)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Manage Post
+              </Button>
+            ) : showInterestForm ? (
+              <div className="space-y-4">
+                <Textarea
+                  placeholder="Write a message to the poster..."
                   value={interestMessage}
                   onChange={(e) => setInterestMessage(e.target.value)}
-                  placeholder="Hi, I'm interested in this..."
-                  className="min-h-[80px]"
+                  className="min-h-[100px]"
                 />
                 <div className="flex gap-2">
                   <Button className="flex-1" onClick={handleInterestSubmit} disabled={isSubmitting}>

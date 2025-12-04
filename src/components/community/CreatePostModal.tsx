@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, Upload, X } from "lucide-react";
+import { Loader2, MapPin, Upload, X, Trash2 } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { LocationSearchBar } from "@/components/donation/LocationSearchBar";
 import { loadGoogleMaps } from "@/lib/googleMaps";
@@ -39,9 +39,10 @@ interface CreatePostModalProps {
     expiryDate?: Date;
   };
   postToEdit?: CommunityPostWithUser | null;
+  onDelete?: (post: CommunityPostWithUser) => void;
 }
 
-export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }: CreatePostModalProps) {
+export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, onDelete }: CreatePostModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -444,12 +445,28 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit }:
           )}
         </div>
 
-        <DialogFooter className="flex justify-between sm:justify-between">
-          {step === 2 ? (
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-          ) : (
-            <div />
-          )}
+        <DialogFooter className="flex justify-between sm:justify-between items-center">
+          <div className="flex gap-2">
+            {step === 2 && (
+              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            )}
+            {postToEdit && onDelete && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10" 
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+                    onDelete(postToEdit);
+                    onOpenChange(false);
+                  }
+                }}
+                title="Delete Post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
           
           {step === 1 ? (
             <Button onClick={() => setStep(2)}>Next</Button>

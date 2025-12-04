@@ -148,9 +148,15 @@ export function CommunityPostCard({ post, onInterest, onLike, onSave, onReport, 
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button size="sm" className="ml-2" onClick={(e) => { e.stopPropagation(); onInterest(post); }}>
-            I'm Interested
-          </Button>
+          {isOwner ? (
+            <Button size="sm" variant="outline" className="ml-2" onClick={(e) => { e.stopPropagation(); onEdit?.(post); }}>
+              Manage
+            </Button>
+          ) : (
+            <Button size="sm" className="ml-2" onClick={(e) => { e.stopPropagation(); onInterest(post); }}>
+              I'm Interested
+            </Button>
+          )}
         </div>
       </CardFooter>
     </Card>

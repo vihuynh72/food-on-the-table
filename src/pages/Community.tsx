@@ -76,6 +76,14 @@ export default function Community() {
       toast({ title: "Please sign in", description: "You need to be signed in to express interest.", variant: "destructive" });
       return;
     }
+    
+    // If user is owner, go straight to edit
+    if (post.user_id === user.id) {
+      setPostToEdit(post);
+      setCreateModalOpen(true);
+      return;
+    }
+
     setSelectedPost(post);
     setDetailDrawerOpen(true);
   };
@@ -201,6 +209,7 @@ export default function Community() {
           if (!open) setPostToEdit(null);
         }}
         postToEdit={postToEdit}
+        onDelete={handleDelete}
       />
 
       <PostDetailDrawer 
