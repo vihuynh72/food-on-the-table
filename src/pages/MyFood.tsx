@@ -58,6 +58,8 @@ export default function MyFood() {
     getItemsWithDaysLeft,
     getExpiringSoonItems,
     getExpiredItems,
+    evaluateItem,
+    clearAssessment,
   } = useFoodInventory();
 
   const [storageFilter, setStorageFilter] = useState<StorageFilter>("all");
@@ -72,6 +74,7 @@ export default function MyFood() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [potItems, setPotItems] = useState<FoodItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [evaluatingItems, setEvaluatingItems] = useState<Set<string>>(new Set());
 
   const itemsWithDays = getItemsWithDaysLeft();
   const expiringSoon = getExpiringSoonItems();
@@ -85,6 +88,16 @@ export default function MyFood() {
       newSelected.add(id);
     }
     setSelectedItems(newSelected);
+  };
+
+  const handleEvaluate = async (item: FoodItem) => {
+    setEvaluatingItems(prev => new Set(prev).add(item.id));
+    await evaluateItem(item);
+    setEvaluatingItems(prev => {
+      const next = new Set(prev);
+      next.delete(item.id);
+      return next;
+    });
   };
 
   const addToPot = (item: FoodItem) => {
@@ -389,6 +402,9 @@ export default function MyFood() {
                     isInPot={potItems.some(p => p.id === item.id)}
                     onToggleSelect={() => toggleSelection(item.id)}
                     onAddToPot={() => addToPot(item)}
+                    onEvaluate={() => handleEvaluate(item)}
+                    onClearAssessment={() => clearAssessment(item.id)}
+                    isEvaluating={evaluatingItems.has(item.id)}
                   />
                 </motion.div>
               ))}

@@ -1,4 +1,4 @@
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { FoodAssessment } from "@/lib/openai";
 
 interface FoodItemCardProps {
   name: string;
@@ -23,6 +24,9 @@ interface FoodItemCardProps {
     onClick: () => void;
   }>;
   icon?: React.ReactNode;
+  assessment?: FoodAssessment | null;
+  onEvaluate?: () => void;
+  isEvaluating?: boolean;
 }
 
 export function FoodItemCard({
@@ -33,6 +37,9 @@ export function FoodItemCard({
   primaryAction,
   secondaryActions = [],
   icon,
+  assessment,
+  onEvaluate,
+  isEvaluating,
 }: FoodItemCardProps) {
   const statusClasses = {
     urgent: "chip-urgent",
@@ -73,6 +80,45 @@ export function FoodItemCard({
       </div>
 
       <Badge className={cn("mb-4", statusClasses[status])}>{statusText}</Badge>
+
+      {assessment ? (
+        <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm animate-in fade-in zoom-in duration-300">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {assessment.doable && <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Doable</Badge>}
+            {assessment.shareable && <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">Shareable</Badge>}
+            {assessment.eatable && <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100">Eatable</Badge>}
+            {assessment.discardable && <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">Discard</Badge>}
+          </div>
+          <p className="text-muted-foreground text-xs italic">"{assessment.reason}"</p>
+          {assessment.action && (
+             <div className="mt-2 text-xs font-medium text-primary">
+               Suggested: {assessment.action.charAt(0).toUpperCase() + assessment.action.slice(1)}
+             </div>
+          )}
+        </div>
+      ) : (
+        onEvaluate && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full mb-4 border-dashed text-muted-foreground hover:text-primary hover:border-primary/50"
+            onClick={onEvaluate}
+            disabled={isEvaluating}
+          >
+            {isEvaluating ? (
+              <>
+                <Sparkles className="w-3 h-3 mr-2 animate-spin" />
+                Evaluating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3 h-3 mr-2" />
+                AI Evaluate
+              </>
+            )}
+          </Button>
+        )
+      )}
 
       <Button
         onClick={primaryAction.onClick}

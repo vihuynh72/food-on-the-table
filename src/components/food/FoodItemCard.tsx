@@ -20,12 +20,13 @@ import {
   Soup,
   Plus,
   Check,
+  Sparkles,
+  X,
 } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
 import { foodKnowledgeBase } from "@/data/foodKnowledgeBase";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 interface FoodItemCardProps {
   item: FoodItem & { daysLeft: number };
@@ -40,6 +41,9 @@ interface FoodItemCardProps {
   isInPot?: boolean;
   onToggleSelect?: (checked: boolean) => void;
   onAddToPot?: () => void;
+  onEvaluate?: () => void;
+  onClearAssessment?: () => void;
+  isEvaluating?: boolean;
 }
 
 export function FoodItemCard({
@@ -55,6 +59,9 @@ export function FoodItemCard({
   isInPot = false,
   onToggleSelect,
   onAddToPot,
+  onEvaluate,
+  onClearAssessment,
+  isEvaluating = false,
 }: FoodItemCardProps) {
   const getUrgencyColor = (daysLeft: number) => {
     if (daysLeft < 0) return "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30";
@@ -71,11 +78,9 @@ export function FoodItemCard({
   };
 
   const getIcon = () => {
-    // Try to find exact match in knowledge base
     const kbItem = foodKnowledgeBase.find(k => k.name.toLowerCase() === item.name.toLowerCase());
     if (kbItem?.icon) return kbItem.icon;
 
-    // Fallback based on category
     switch (item.category?.toLowerCase()) {
       case "fruit": return "🍎";
       case "vegetable": return "🥕";
@@ -209,21 +214,69 @@ export function FoodItemCard({
             </div>
           </div>
         </div>
+        {/* Assessment Result */}
+        {item.ai_assessment && (
+          <div className={cn(
+            "mt-2 p-2 rounded text-xs animate-in fade-in slide-in-from-bottom-2 relative group/assessment",
+            item.ai_assessment.discardable ? "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30" : "bg-muted/50"
+          )}>
+             {onClearAssessment && (
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-background/50"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onClearAssessment();
+                 }}
+                 title="Close analysis"
+               >
+                 <X className="h-3.5 w-3.5" />
+               </Button>
+             )}
+             <div className="flex gap-1 mb-1 flex-wrap pr-5">
+                {item.ai_assessment.doable && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-green-50 text-green-700 border-green-200">Doable</Badge>}
+                {item.ai_assessment.shareable && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-blue-50 text-blue-700 border-blue-200">Shareable</Badge>}
+                {item.ai_assessment.eatable && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-emerald-50 text-emerald-700 border-emerald-200">Eatable</Badge>}
+                {item.ai_assessment.discardable && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-red-100 text-red-800 border-red-200 font-bold">Discard</Badge>}
+             </div>
+             <p className={cn(
+               "line-clamp-2 italic",
+               item.ai_assessment.discardable ? "text-red-800 dark:text-red-300 font-medium" : "text-muted-foreground"
+             )}>"{item.ai_assessment.reason}"</p>
+          </div>
+        )}
         
         {/* Action Overlay (Visible on Hover) */}
         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-background via-background/95 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-around gap-2 z-10">
-           <Button 
-            size="sm" 
-            variant="default"
-            className="flex-1 h-9 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCookEat();
-            }}
-          >
-            <Utensils className="w-3.5 h-3.5 mr-1.5" />
-            Eat
-          </Button>
+           {!item.ai_assessment && onEvaluate ? (
+              <Button 
+                size="sm" 
+                variant="secondary"
+                className="flex-1 h-9 shadow-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-secondary-foreground/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEvaluate();
+                }}
+                disabled={isEvaluating}
+              >
+                {isEvaluating ? <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                {isEvaluating ? "Analyzing..." : "Analyze"}
+              </Button>
+           ) : (
+              <Button 
+                size="sm" 
+                variant="default"
+                className="flex-1 h-9 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCookEat();
+                }}
+              >
+                <Utensils className="w-3.5 h-3.5 mr-1.5" />
+                Eat
+              </Button>
+           )}
           
           <Button 
             size="sm" 
@@ -259,7 +312,7 @@ export function FoodItemCard({
           "absolute bottom-0 left-0 h-1.5 transition-all opacity-60",
           item.daysLeft <= 2 ? "bg-red-500" : item.daysLeft <= 5 ? "bg-orange-500" : "bg-green-500"
         )}
-        style={{ width: `${Math.max(0, Math.min(100, (item.daysLeft / 14) * 100))}%` }}
+        style={{ width: `${Math.max(0, Math.min(100, (item.daysLeft / 14) * 100))}\%` }}
       />
     </Card>
   );
