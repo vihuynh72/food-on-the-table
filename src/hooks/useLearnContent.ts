@@ -311,8 +311,9 @@ export function useLearnContent() {
     lessons: lessonsQuery.data || [],
     progress: progressQuery.data || [],
     categoriesWithProgress,
-    isLoading: categoriesQuery.isLoading || lessonsQuery.isLoading || progressQuery.isLoading,
-    error: categoriesQuery.error || lessonsQuery.error || progressQuery.error,
+    // Only check loading for public content (categories/lessons), not auth-gated queries
+    isLoading: categoriesQuery.isLoading || lessonsQuery.isLoading,
+    error: categoriesQuery.error || lessonsQuery.error,
     isLessonCompleted,
     getLessonProgress,
     completeLesson: completeLessonMutation.mutate,

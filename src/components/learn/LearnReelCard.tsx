@@ -12,10 +12,13 @@ import {
   Bookmark,
   Leaf,
   Apple,
-  Recycle
+  Recycle,
+  LogIn
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface LearnReelCardProps {
   lesson: LearnLesson;
@@ -73,8 +76,42 @@ export function LearnReelCard({
   onToggleSave,
 }: LearnReelCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const theme = cardThemes[category?.color as keyof typeof cardThemes] || cardThemes.woodland;
   const CategoryIcon = categoryIcons[category?.name || ''] || Leaf;
+
+  // Login prompt handlers
+  const handleLikeClick = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like lessons",
+        action: (
+          <Button size="sm" onClick={() => navigate('/auth')} className="gap-1">
+            <LogIn className="w-4 h-4" /> Sign In
+          </Button>
+        ),
+      });
+      return;
+    }
+    onToggleLike();
+  };
+
+  const handleSaveClick = () => {
+    if (!user) {
+      toast({
+        title: "Sign in required", 
+        description: "Please sign in to save lessons",
+        action: (
+          <Button size="sm" onClick={() => navigate('/auth')} className="gap-1">
+            <LogIn className="w-4 h-4" /> Sign In
+          </Button>
+        ),
+      });
+      return;
+    }
+    onToggleSave();
+  };
 
   // Quiz state
   const [quizState, setQuizState] = useState<{
@@ -328,7 +365,7 @@ export function LearnReelCard({
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => { e.stopPropagation(); onToggleLike(); }}
+          onClick={(e) => { e.stopPropagation(); handleLikeClick(); }}
           className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors"
         >
           <Heart className={cn(
@@ -339,12 +376,12 @@ export function LearnReelCard({
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          onClick={(e) => { e.stopPropagation(); handleSaveClick(); }}
           className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-colors"
         >
           <Bookmark className={cn(
             "w-6 h-6 transition-all",
-            isSaved ? "fill-yellow-400 text-yellow-400 scale-110" : "text-white"
+            isSaved ? "fill-white text-white scale-110" : "text-white"
           )} />
         </motion.button>
       </div>

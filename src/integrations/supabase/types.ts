@@ -757,6 +757,64 @@ export type Database = {
           }
         ]
       }
+      learn_user_likes: {
+        Row: {
+          id: string
+          user_id: string
+          lesson_id: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          lesson_id: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          lesson_id?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_user_likes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "learn_lessons"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      learn_user_saves: {
+        Row: {
+          id: string
+          user_id: string
+          lesson_id: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          lesson_id: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          lesson_id?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_user_saves_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "learn_lessons"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
