@@ -26,32 +26,39 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppContent() {
+  return (
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <ProfileGuard>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/my-food" element={<MyFood />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/impact" element={<Impact />} />
+            <Route path="/learn" element={<Learn />} />
+            <Route path="/my-collection" element={<SavedReels />} />
+            <Route path="/donate" element={<Donate />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
+            <Route path="/recipe-generator" element={<RecipeGenerator />} />
+            <Route path="/settings" element={<Settings />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ProfileGuard>
+      </BrowserRouter>
+    </TooltipProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ProfileGuard>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/my-food" element={<MyFood />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/impact" element={<Impact />} />
-              <Route path="/learn" element={<Learn />} />
-              <Route path="/my-collection" element={<SavedReels />} />
-              <Route path="/donate" element={<Donate />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/complete-profile" element={<CompleteProfile />} />
-              <Route path="/recipe-generator" element={<RecipeGenerator />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ProfileGuard>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   </QueryClientProvider>
 );
 

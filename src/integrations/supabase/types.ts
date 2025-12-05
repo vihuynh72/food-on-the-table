@@ -48,29 +48,53 @@ export type Database = {
       }
       community_interests: {
         Row: {
+          accepted_at: string | null
           created_at: string | null
+          declined_at: string | null
+          giver_confirmed: boolean | null
           giver_id: string | null
           id: string
           message: string | null
+          pickup_confirmed_at: string | null
+          pickup_notes: string | null
+          pickup_photo_url: string | null
+          pickup_time: string | null
           post_id: string | null
+          seeker_confirmed: boolean | null
           seeker_id: string | null
           status: string | null
         }
         Insert: {
+          accepted_at?: string | null
           created_at?: string | null
+          declined_at?: string | null
+          giver_confirmed?: boolean | null
           giver_id?: string | null
           id?: string
           message?: string | null
+          pickup_confirmed_at?: string | null
+          pickup_notes?: string | null
+          pickup_photo_url?: string | null
+          pickup_time?: string | null
           post_id?: string | null
+          seeker_confirmed?: boolean | null
           seeker_id?: string | null
           status?: string | null
         }
         Update: {
+          accepted_at?: string | null
           created_at?: string | null
+          declined_at?: string | null
+          giver_confirmed?: boolean | null
           giver_id?: string | null
           id?: string
           message?: string | null
+          pickup_confirmed_at?: string | null
+          pickup_notes?: string | null
+          pickup_photo_url?: string | null
+          pickup_time?: string | null
           post_id?: string | null
+          seeker_confirmed?: boolean | null
           seeker_id?: string | null
           status?: string | null
         }
@@ -154,6 +178,8 @@ export type Database = {
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
+          picked_up_at: string | null
+          picked_up_by: string | null
           quantity_description: string | null
           remaining_portions: number | null
           status: string | null
@@ -175,6 +201,8 @@ export type Database = {
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
           quantity_description?: string | null
           remaining_portions?: number | null
           status?: string | null
@@ -196,6 +224,8 @@ export type Database = {
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
           quantity_description?: string | null
           remaining_portions?: number | null
           status?: string | null
@@ -207,6 +237,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "impact_leaderboard"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "community_posts_user_id_profiles_fkey"
             columns: ["user_id"]
@@ -368,78 +405,6 @@ export type Database = {
           purchase_date?: string | null
           quantity?: string | null
           storage?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          first_name: string | null
-          id: string
-          last_name: string | null
-          updated_at: string
-          user_id: string
-          username: string | null
-          zip_code: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          updated_at?: string
-          user_id: string
-          username?: string | null
-          zip_code?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          updated_at?: string
-          user_id?: string
-          username?: string | null
-          zip_code?: string | null
-        }
-        Relationships: []
-      }
-      user_stats: {
-        Row: {
-          created_at: string | null
-          total_co2_reduced_kg: number | null
-          total_donations: number | null
-          total_food_saved_kg: number | null
-          total_money_saved: number | null
-          total_points: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          total_co2_reduced_kg?: number | null
-          total_donations?: number | null
-          total_food_saved_kg?: number | null
-          total_money_saved?: number | null
-          total_points?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          total_co2_reduced_kg?: number | null
-          total_donations?: number | null
-          total_food_saved_kg?: number | null
-          total_money_saved?: number | null
-          total_points?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -636,81 +601,113 @@ export type Database = {
         }
         Relationships: []
       }
-      learn_categories: {
+      interest_messages: {
         Row: {
-          id: string
-          name: string
-          description: string | null
-          icon: string | null
-          color: string | null
-          sort_order: number
           created_at: string | null
+          id: string
+          interest_id: string
+          message: string
+          sender_id: string
         }
         Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          icon?: string | null
-          color?: string | null
-          sort_order?: number
           created_at?: string | null
+          id?: string
+          interest_id: string
+          message: string
+          sender_id: string
         }
         Update: {
+          created_at?: string | null
           id?: string
-          name?: string
+          interest_id?: string
+          message?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interest_messages_interest_id_fkey"
+            columns: ["interest_id"]
+            isOneToOne: false
+            referencedRelation: "community_interests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learn_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
           description?: string | null
           icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
           color?: string | null
-          sort_order?: number
           created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
         }
         Relationships: []
       }
       learn_lessons: {
         Row: {
-          id: string
           category_id: string
-          title: string
-          type: 'article' | 'quiz'
-          duration: number
-          summary: string | null
           content: string | null
-          thumbnail: string | null
-          tags: string[] | null
-          cta_type: string | null
-          cta_label: string | null
-          sort_order: number
           created_at: string | null
+          cta_label: string | null
+          cta_type: string | null
+          duration: number | null
+          id: string
+          sort_order: number | null
+          summary: string | null
+          tags: string[] | null
+          thumbnail: string | null
+          title: string
+          type: string
         }
         Insert: {
-          id?: string
           category_id: string
-          title: string
-          type: 'article' | 'quiz'
-          duration?: number
-          summary?: string | null
           content?: string | null
-          thumbnail?: string | null
-          tags?: string[] | null
-          cta_type?: string | null
-          cta_label?: string | null
-          sort_order?: number
           created_at?: string | null
+          cta_label?: string | null
+          cta_type?: string | null
+          duration?: number | null
+          id?: string
+          sort_order?: number | null
+          summary?: string | null
+          tags?: string[] | null
+          thumbnail?: string | null
+          title: string
+          type: string
         }
         Update: {
-          id?: string
           category_id?: string
-          title?: string
-          type?: 'article' | 'quiz'
-          duration?: number
-          summary?: string | null
           content?: string | null
-          thumbnail?: string | null
-          tags?: string[] | null
-          cta_type?: string | null
-          cta_label?: string | null
-          sort_order?: number
           created_at?: string | null
+          cta_label?: string | null
+          cta_type?: string | null
+          duration?: number | null
+          id?: string
+          sort_order?: number | null
+          summary?: string | null
+          tags?: string[] | null
+          thumbnail?: string | null
+          title?: string
+          type?: string
         }
         Relationships: [
           {
@@ -719,62 +716,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "learn_categories"
             referencedColumns: ["id"]
-          }
-        ]
-      }
-      learn_user_progress: {
-        Row: {
-          id: string
-          user_id: string
-          lesson_id: string
-          completed_at: string | null
-          quiz_score: number | null
-          time_spent_seconds: number | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          lesson_id: string
-          completed_at?: string | null
-          quiz_score?: number | null
-          time_spent_seconds?: number | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          lesson_id?: string
-          completed_at?: string | null
-          quiz_score?: number | null
-          time_spent_seconds?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learn_user_progress_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "learn_lessons"
-            referencedColumns: ["id"]
-          }
+          },
         ]
       }
       learn_user_likes: {
         Row: {
+          created_at: string
           id: string
-          user_id: string
           lesson_id: string
-          created_at: string | null
+          user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          user_id: string
           lesson_id: string
-          created_at?: string | null
+          user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
-          user_id?: string
           lesson_id?: string
-          created_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -783,27 +745,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "learn_lessons"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      learn_user_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          lesson_id: string
+          quiz_score: number | null
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          lesson_id: string
+          quiz_score?: number | null
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          lesson_id?: string
+          quiz_score?: number | null
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_user_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "learn_lessons"
+            referencedColumns: ["id"]
+          },
         ]
       }
       learn_user_saves: {
         Row: {
+          created_at: string
           id: string
-          user_id: string
           lesson_id: string
-          created_at: string | null
+          user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          user_id: string
           lesson_id: string
-          created_at?: string | null
+          user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
-          user_id?: string
           lesson_id?: string
-          created_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -812,15 +809,167 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "learn_lessons"
             referencedColumns: ["id"]
-          }
+          },
         ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string
+          read: boolean | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          read?: boolean | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          read?: boolean | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          leaderboard_visible: boolean | null
+          updated_at: string
+          user_id: string
+          username: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          leaderboard_visible?: boolean | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          leaderboard_visible?: boolean | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          created_at: string | null
+          total_co2_reduced_kg: number | null
+          total_donations: number | null
+          total_food_saved_kg: number | null
+          total_money_saved: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          total_co2_reduced_kg?: number | null
+          total_donations?: number | null
+          total_food_saved_kg?: number | null
+          total_money_saved?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          total_co2_reduced_kg?: number | null
+          total_donations?: number | null
+          total_food_saved_kg?: number | null
+          total_money_saved?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      impact_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          current_streak_days: number | null
+          first_name: string | null
+          leaderboard_visible: boolean | null
+          level: number | null
+          meals_saved: number | null
+          neighbors_helped: number | null
+          rank: number | null
+          shares_completed: number | null
+          total_points: number | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      accept_interest: {
+        Args: {
+          p_interest_id: string
+          p_pickup_notes?: string
+          p_pickup_time?: string
+        }
+        Returns: Json
+      }
+      confirm_community_pickup: {
+        Args: {
+          p_confirmer_role: string
+          p_interest_id: string
+          p_photo_url?: string
+        }
+        Returns: Json
+      }
+      decline_interest: { Args: { p_interest_id: string }; Returns: Json }
+      get_unread_notification_count: { Args: never; Returns: number }
+      mark_notifications_read: {
+        Args: { p_notification_ids: string[] }
+        Returns: Json
+      }
+      send_interest_message: {
+        Args: { p_interest_id: string; p_message: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -844,7 +993,7 @@ export type Tables<
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
