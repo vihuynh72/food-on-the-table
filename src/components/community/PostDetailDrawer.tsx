@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CommunityPostWithUser } from "@/types/community";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,8 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, format } from "date-fns";
-import { MapPin, Clock, Heart, Bookmark, Flag, Send, Loader2, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Clock, Heart, Bookmark, Flag, Send, Loader2, Pencil, Trash2, Users } from "lucide-react";
 import { formatCategory } from "@/lib/utils";
+import { useInterestManagement } from "@/hooks/useInterestManagement";
+import { InterestManagementPanel } from "./InterestManagementPanel";
 
 interface PostDetailDrawerProps {
   post: CommunityPostWithUser | null;
@@ -34,6 +36,19 @@ export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }:
   const [interestMessage, setInterestMessage] = useState("Hi! I'd love to pick this up.");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInterestForm, setShowInterestForm] = useState(false);
+  const [showInterestManagement, setShowInterestManagement] = useState(false);
+  
+  // Interest management for post owners
+  const { receivedInterests, acceptInterest, declineInterest } = useInterestManagement();
+  
+  // Get interests for this specific post
+  const postInterests = useMemo(() => {
+    if (!post) return [];
+    const postData = receivedInterests.find(p => p.id === post.id);
+    return postData?.interests || [];
+  }, [receivedInterests, post?.id]);
+  
+  const pendingCount = postInterests.filter(i => i.status === 'pending').length;
 
   if (!post) return null;
 
@@ -167,12 +182,47 @@ export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }:
               </div>
             </div>
 
-            {/* Interest Form */}
+            {/* Interest Form / Management */}
             {user?.id === post.user_id ? (
-              <Button className="w-full h-12 text-lg" variant="outline" onClick={() => onEdit?.(post)}>
-                <Pencil className="w-4 h-4 mr-2" />
-                Manage Post
-              </Button>
+              <div className="space-y-4">
+                {/* Toggle between edit and interest management */}
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    variant={showInterestManagement ? "outline" : "default"}
+                    onClick={() => setShowInterestManagement(false)}
+                  >
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Post
+                  </Button>
+                  <Button 
+                    className="flex-1 relative" 
+                    variant={showInterestManagement ? "default" : "outline"}
+                    onClick={() => setShowInterestManagement(true)}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Requests
+                    {pendingCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </Button>
+                </div>
+                
+                {showInterestManagement ? (
+                  <InterestManagementPanel
+                    interests={postInterests}
+                    onAccept={(id, msg) => acceptInterest.mutate({ interestId: id, message: msg })}
+                    onDecline={(id, msg) => declineInterest.mutate({ interestId: id, message: msg })}
+                    isLoading={acceptInterest.isPending || declineInterest.isPending}
+                  />
+                ) : (
+                  <Button className="w-full" variant="secondary" onClick={() => onEdit?.(post)}>
+                    Open Post Editor
+                  </Button>
+                )}
+              </div>
             ) : showInterestForm ? (
               <div className="space-y-4">
                 <Textarea

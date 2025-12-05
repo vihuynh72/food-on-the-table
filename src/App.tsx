@@ -7,8 +7,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import MyFood from "./pages/MyFood";
 import Community from "./pages/Community";
-import Impact from "./pages/Impact";
+import Impact from "./pages/ImpactNew";
 import Learn from "./pages/Learn";
+import SavedReels from "./pages/SavedReels";
 import Settings from "./pages/Settings";
 import Donate from "./pages/Donate";
 import Auth from "./pages/Auth";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/community" element={<Community />} />
               <Route path="/impact" element={<Impact />} />
               <Route path="/learn" element={<Learn />} />
+              <Route path="/my-collection" element={<SavedReels />} />
               <Route path="/donate" element={<Donate />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />

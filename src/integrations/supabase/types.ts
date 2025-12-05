@@ -636,6 +636,127 @@ export type Database = {
         }
         Relationships: []
       }
+      learn_categories: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          icon: string | null
+          color: string | null
+          sort_order: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          icon?: string | null
+          color?: string | null
+          sort_order?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          icon?: string | null
+          color?: string | null
+          sort_order?: number
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      learn_lessons: {
+        Row: {
+          id: string
+          category_id: string
+          title: string
+          type: 'article' | 'quiz'
+          duration: number
+          summary: string | null
+          content: string | null
+          thumbnail: string | null
+          tags: string[] | null
+          cta_type: string | null
+          cta_label: string | null
+          sort_order: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          category_id: string
+          title: string
+          type: 'article' | 'quiz'
+          duration?: number
+          summary?: string | null
+          content?: string | null
+          thumbnail?: string | null
+          tags?: string[] | null
+          cta_type?: string | null
+          cta_label?: string | null
+          sort_order?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          category_id?: string
+          title?: string
+          type?: 'article' | 'quiz'
+          duration?: number
+          summary?: string | null
+          content?: string | null
+          thumbnail?: string | null
+          tags?: string[] | null
+          cta_type?: string | null
+          cta_label?: string | null
+          sort_order?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_lessons_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "learn_categories"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      learn_user_progress: {
+        Row: {
+          id: string
+          user_id: string
+          lesson_id: string
+          completed_at: string | null
+          quiz_score: number | null
+          time_spent_seconds: number | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          lesson_id: string
+          completed_at?: string | null
+          quiz_score?: number | null
+          time_spent_seconds?: number | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          lesson_id?: string
+          completed_at?: string | null
+          quiz_score?: number | null
+          time_spent_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_user_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "learn_lessons"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

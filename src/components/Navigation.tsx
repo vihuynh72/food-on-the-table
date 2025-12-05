@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Home, Package, Users, Trophy, BookOpen, Settings, LogOut, LogIn, User } from "lucide-react";
+import { Menu, Home, Package, Users, Trophy, BookOpen, Settings, LogOut, LogIn, User, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationsDrawer } from "@/components/NotificationsDrawer";
 
 const navItems = [
   { name: "Home", url: "/", icon: Home },
@@ -26,9 +28,11 @@ const navItems = [
 
 export function Navigation() {
   const [open, setOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,7 +54,22 @@ export function Navigation() {
         <NavBarSpacer />
         
         {/* Auth button floating on the right */}
-        <div className="fixed top-6 right-6 z-50">
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2">
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-10 w-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/50"
+              onClick={() => setNotificationsOpen(true)}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+          )}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -114,21 +133,37 @@ export function Navigation() {
               <span className="text-lg font-bold text-foreground">Food on the Table</span>
             </Link>
 
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
+            <div className="flex items-center gap-1">
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  onClick={() => setNotificationsOpen(true)}
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-64">
-                <div className="flex flex-col gap-4 mt-8">
-                  {user && (
-                    <div className="flex items-center gap-3 px-2 mb-4">
-                      <Avatar className="h-10 w-10 border border-woodland/20">
-                        <AvatarImage src={user.user_metadata?.avatar_url} />
-                        <AvatarFallback className="bg-pine-glade text-woodland">
-                          {user.email?.charAt(0).toUpperCase()}
-                        </AvatarFallback>
+              )}
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-64">
+                  <div className="flex flex-col gap-4 mt-8">
+                    {user && (
+                      <div className="flex items-center gap-3 px-2 mb-4">
+                        <Avatar className="h-10 w-10 border border-woodland/20">
+                          <AvatarImage src={user.user_metadata?.avatar_url} />
+                          <AvatarFallback className="bg-pine-glade text-woodland">
+                            {user.email?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{profile?.username ? `@${profile.username}` : user.email}</span>
@@ -190,6 +225,7 @@ export function Navigation() {
                 </div>
               </SheetContent>
             </Sheet>
+            </div>
           </div>
         </nav>
         
@@ -198,6 +234,12 @@ export function Navigation() {
           <NavBar items={navItems} />
         </div>
       </div>
+
+      {/* Notifications Drawer */}
+      <NotificationsDrawer 
+        open={notificationsOpen} 
+        onOpenChange={setNotificationsOpen} 
+      />
     </>
   );
 }

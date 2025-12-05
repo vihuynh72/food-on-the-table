@@ -85,6 +85,16 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
       return;
     }
 
+    // Require photo proof for donation verification
+    if (!photoFile) {
+      toast({
+        title: "Photo required",
+        description: "Please take a photo of your donation for verification",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -263,7 +273,10 @@ export function DonationModal({ open, onOpenChange, locationId, locationName }: 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Photo (optional)</Label>
+                  <Label>Photo Proof *</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Take a photo of your donation to verify and earn points
+                  </p>
                   {photoPreview ? (
                     <div className="relative rounded-lg overflow-hidden border">
                       <img src={photoPreview} alt="Donation preview" className="w-full h-48 object-cover" />
