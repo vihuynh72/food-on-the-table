@@ -24,17 +24,29 @@ export interface UserRank {
 
 type TimeFrame = "weekly" | "monthly" | "all_time";
 
-interface ProfileRow {
-  user_id: string;
-  username: string | null;
-  first_name: string | null;
-  avatar_url: string | null;
+/**
+ * Helper function to derive a display name from user profile data.
+ * Prioritizes: username > first_name > "Anonymous"
+ */
+export function getDisplayName(entry: Pick<LeaderboardEntry, "username" | "first_name">): string {
+  if (entry.username) return entry.username;
+  if (entry.first_name) return entry.first_name;
+  return "Anonymous";
+}
+
+/**
+ * Helper function to get initials from a display name
+ */
+export function getInitials(displayName: string): string {
+  if (!displayName || displayName === "Anonymous") return "?";
+  return displayName.charAt(0).toUpperCase();
 }
 
 export function useLeaderboard(timeFrame: TimeFrame = "all_time", limit: number = 20) {
   const { user } = useAuth();
 
-  // Fetch leaderboard data by joining profiles and impact_user_totals
+  // Fetch leaderboard data directly from the impact_leaderboard view
+  // The view joins profiles and impact_user_totals and filters by leaderboard_visible
   const { 
     data: leaderboard = [], 
     isLoading: leaderboardLoading,
@@ -42,54 +54,32 @@ export function useLeaderboard(timeFrame: TimeFrame = "all_time", limit: number 
   } = useQuery({
     queryKey: ["impact_leaderboard", timeFrame, limit],
     queryFn: async () => {
-      // First get all profiles (filter by leaderboard_visible on client until types updated)
-      const { data: allProfiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, username, first_name, avatar_url");
-
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        return [];
-      }
-
-      // Cast and filter - once migration is run, leaderboard_visible column will exist
-      const profiles = (allProfiles as any[])?.filter(p => p.leaderboard_visible === true) as ProfileRow[];
-
-      if (!profiles || profiles.length === 0) return [];
-
-      const userIds = profiles.map(p => p.user_id);
-
-      const { data: totals, error: totalsError } = await supabase
-        .from("impact_user_totals")
+      // Use the database view which handles the join and filtering
+      const { data, error } = await supabase
+        .from("impact_leaderboard")
         .select("*")
-        .in("user_id", userIds)
         .order("total_points", { ascending: false })
         .limit(limit);
 
-      if (totalsError) {
-        console.error("Error fetching totals:", totalsError);
+      if (error) {
+        console.error("Error fetching leaderboard:", error);
         return [];
       }
 
-      // Merge and rank
-      const profileMap = new Map(profiles.map(p => [p.user_id, p]));
-      
-      const entries: LeaderboardEntry[] = (totals || []).map((t, index) => {
-        const profile = profileMap.get(t.user_id);
-        return {
-          user_id: t.user_id,
-          username: profile?.username || null,
-          first_name: profile?.first_name || null,
-          avatar_url: profile?.avatar_url || null,
-          total_points: t.total_points || 0,
-          meals_saved: t.meals_saved || 0,
-          level: t.level || 1,
-          shares_completed: t.shares_completed || 0,
-          neighbors_helped: t.neighbors_helped || 0,
-          current_streak_days: t.current_streak_days || 0,
-          rank: index + 1,
-        };
-      });
+      // Map view results to LeaderboardEntry with proper rank
+      const entries: LeaderboardEntry[] = (data || []).map((row: any, index: number) => ({
+        user_id: row.user_id,
+        username: row.username || null,
+        first_name: row.first_name || null,
+        avatar_url: row.avatar_url || null,
+        total_points: row.total_points || 0,
+        meals_saved: row.meals_saved || 0,
+        level: row.level || 1,
+        shares_completed: row.shares_completed || 0,
+        neighbors_helped: row.neighbors_helped || 0,
+        current_streak_days: row.current_streak_days || 0,
+        rank: row.rank || index + 1,
+      }));
 
       return entries;
     },
