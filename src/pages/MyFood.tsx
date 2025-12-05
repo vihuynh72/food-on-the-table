@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CookingPot } from "@/components/food/CookingPot";
 
 type StorageFilter = "all" | "fridge" | "freezer" | "pantry";
 type StatusFilter = "all" | "expiring" | "expired";
@@ -68,10 +69,47 @@ export default function MyFood() {
   const [shareItem, setShareItem] = useState<FoodItem | null>(null);
   const [deleteItemData, setDeleteItemData] = useState<FoodItem | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [potItems, setPotItems] = useState<FoodItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const itemsWithDays = getItemsWithDaysLeft();
   const expiringSoon = getExpiringSoonItems();
   const expired = getExpiredItems();
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const addToPot = (item: FoodItem) => {
+    if (!potItems.some(i => i.id === item.id)) {
+      setPotItems([...potItems, item]);
+      toast({
+        title: "Added to Pot",
+        description: `${item.name} is now in your cooking pot.`,
+      });
+    } else {
+      setPotItems(potItems.filter(i => i.id !== item.id));
+      toast({
+        title: "Removed from Pot",
+        description: `${item.name} has been removed from your cooking pot.`,
+      });
+    }
+  };
+
+  const removeFromPot = (itemId: string) => {
+    setPotItems(potItems.filter(i => i.id !== itemId));
+  };
+
+  const clearPot = () => {
+    setPotItems([]);
+  };
 
   // Show toast on mount if there are expiring items
   useEffect(() => {
@@ -323,6 +361,20 @@ export default function MyFood() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.2 }}
+                  drag
+                  dragSnapToOrigin
+                  whileDrag={{ scale: 1.05, zIndex: 50, cursor: "grabbing" }}
+                  onDragStart={() => setIsDragging(true)}
+                  onDragEnd={(_, info) => {
+                    setIsDragging(false);
+                    // Check if dropped in the bottom drop zone (bottom 25% of screen)
+                    const windowHeight = window.innerHeight;
+                    const dropZoneHeight = windowHeight * 0.25;
+                    
+                    if (info.point.y > windowHeight - dropZoneHeight) {
+                      addToPot(item);
+                    }
+                  }}
                 >
                   <FoodItemCard
                     item={item}
@@ -333,12 +385,41 @@ export default function MyFood() {
                     onShare={() => setShareItem(item)}
                     onFreeze={() => handleFreeze(item)}
                     onRemove={() => setDeleteItemData(item)}
+                    isSelected={selectedItems.has(item.id)}
+                    isInPot={potItems.some(p => p.id === item.id)}
+                    onToggleSelect={() => toggleSelection(item.id)}
+                    onAddToPot={() => addToPot(item)}
                   />
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
         )}
+
+        <CookingPot 
+          items={potItems} 
+          onRemoveItem={removeFromPot} 
+          onClear={clearPot} 
+        />
+
+        {/* Large Drop Zone Overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="fixed bottom-0 left-0 right-0 h-[25vh] bg-primary/10 backdrop-blur-sm border-t-4 border-primary/30 z-40 flex items-center justify-center pointer-events-none"
+            >
+              <div className="text-center animate-pulse">
+                <div className="bg-primary/20 p-4 rounded-full inline-block mb-2">
+                  <PackageIcon className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold text-primary">Drop here to cook!</h3>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Modals */}

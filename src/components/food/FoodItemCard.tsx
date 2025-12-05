@@ -17,10 +17,15 @@ import {
   HeartHandshake,
   CalendarClock,
   Share2,
+  Soup,
+  Plus,
+  Check,
 } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
 import { foodKnowledgeBase } from "@/data/foodKnowledgeBase";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface FoodItemCardProps {
   item: FoodItem & { daysLeft: number };
@@ -31,6 +36,10 @@ interface FoodItemCardProps {
   onShare?: () => void;
   onFreeze: () => void;
   onRemove: () => void;
+  isSelected?: boolean;
+  isInPot?: boolean;
+  onToggleSelect?: (checked: boolean) => void;
+  onAddToPot?: () => void;
 }
 
 export function FoodItemCard({
@@ -42,6 +51,10 @@ export function FoodItemCard({
   onShare,
   onFreeze,
   onRemove,
+  isSelected = false,
+  isInPot = false,
+  onToggleSelect,
+  onAddToPot,
 }: FoodItemCardProps) {
   const getUrgencyColor = (daysLeft: number) => {
     if (daysLeft < 0) return "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30";
@@ -86,54 +99,97 @@ export function FoodItemCard({
   return (
     <Card className={cn(
       "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border",
-      urgencyClass
+      urgencyClass,
+      isSelected && "ring-2 ring-primary ring-offset-2",
+      isInPot && "border-orange-500 bg-orange-50/50 dark:bg-orange-900/10 shadow-md shadow-orange-100/50 dark:shadow-none"
     )}>
-      <div className="p-5 flex flex-col h-full gap-4">
+      <div className="p-4 flex flex-col h-full gap-3">
         {/* Header: Icon + Name + Menu */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-4 overflow-hidden">
-            <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/80 dark:bg-black/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-sm border border-black/5">
-              {getIcon()}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-3 overflow-hidden flex-1">
+            {onToggleSelect && (
+              <Checkbox 
+                checked={isSelected} 
+                onCheckedChange={(checked) => onToggleSelect(checked as boolean)}
+                className="mt-1 h-5 w-5 shrink-0"
+              />
+            )}
+            <div className="relative shrink-0">
+              <div className={cn(
+                "w-12 h-12 rounded-xl backdrop-blur-sm flex items-center justify-center text-3xl shadow-sm border transition-colors",
+                isInPot 
+                  ? "bg-orange-100 dark:bg-orange-900/40 border-orange-200 dark:border-orange-800" 
+                  : "bg-white/80 dark:bg-black/20 border-black/5"
+              )}>
+                {getIcon()}
+              </div>
+              {isInPot && (
+                <div className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white rounded-full p-0.5 shadow-sm animate-in zoom-in duration-200 border-2 border-white dark:border-background">
+                  <Soup className="h-2.5 w-2.5" />
+                </div>
+              )}
             </div>
-            <div className="min-w-0 flex flex-col">
-              <h3 className="font-bold text-lg leading-tight truncate pr-2 text-foreground">{item.name}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+            <div className="min-w-0 flex flex-col pt-0.5">
+              <h3 className="font-bold text-base leading-tight truncate pr-1 text-foreground">{item.name}</h3>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1">
                 <span className="capitalize px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10">{item.storage}</span>
                 {item.category && <span className="capitalize opacity-75">{item.category}</span>}
               </div>
             </div>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 text-muted-foreground hover:text-foreground">
-                <MoreHorizontal className="h-5 w-5" />
+          <div className="flex items-center gap-1 shrink-0">
+            {onAddToPot && (
+              <Button
+                variant={isInPot ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-7 px-2.5 gap-1.5 transition-all duration-300 rounded-full text-xs font-medium",
+                  isInPot 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white border-transparent shadow-sm" 
+                    : "text-primary border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToPot();
+                }}
+                title={isInPot ? "Remove from Pot" : "Add to Cooking Pot"}
+              >
+                {isInPot ? <Check className="h-3 w-3" /> : <Soup className="h-3.5 w-3.5" />}
+                {isInPot ? "Added" : <Plus className="h-3 w-3" />}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onCookEat}>
-                <Utensils className="mr-2 h-4 w-4" /> Eat / Cook
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onFreeze}>
-                <Snowflake className="mr-2 h-4 w-4" /> Freeze
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDonate}>
-                <HeartHandshake className="mr-2 h-4 w-4" /> Donate
-              </DropdownMenuItem>
-              {onShare && (
-                <DropdownMenuItem onClick={onShare}>
-                  <Share2 className="mr-2 h-4 w-4" /> Share to Community
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-full">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Edit className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Remove
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem onClick={onCookEat}>
+                  <Utensils className="mr-2 h-4 w-4" /> Eat / Cook
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onFreeze}>
+                  <Snowflake className="mr-2 h-4 w-4" /> Freeze
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onDonate}>
+                  <HeartHandshake className="mr-2 h-4 w-4" /> Donate
+                </DropdownMenuItem>
+                {onShare && (
+                  <DropdownMenuItem onClick={onShare}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share to Community
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Remove
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Middle: Quantity Badge & Expiry */}

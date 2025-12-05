@@ -227,6 +227,36 @@ export function useFoodInventory() {
     },
   });
 
+  // Batch delete items
+  const batchDeleteItemsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!user) throw new Error("Not authenticated");
+      if (ids.length === 0) return;
+
+      const { error } = await supabase
+        .from("food_items")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["food_items"] });
+      toast({
+        title: "Items removed",
+        description: "Selected items have been removed from your inventory.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting items:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove items. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const addItem = useCallback(
     async (item: FoodItemInsert) => {
       if (!user) {
@@ -368,5 +398,6 @@ export function useFoodInventory() {
     getItemsWithDaysLeft,
     getExpiringSoonItems,
     getExpiredItems,
+    batchDeleteItems: (ids: string[]) => batchDeleteItemsMutation.mutateAsync(ids),
   };
 }

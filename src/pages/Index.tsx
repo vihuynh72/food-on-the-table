@@ -288,7 +288,7 @@ export default function Index() {
           <h2 className="text-foreground text-2xl font-bold">Quick Actions</h2>
           <QuickActionGrid 
             onAddFood={() => setAddFoodOpen(true)} 
-            onGenerateRecipe={() => setRecipeModalOpen(true)}
+            onGenerateRecipe={() => navigate("/recipe-generator")}
           />
         </section>
 
