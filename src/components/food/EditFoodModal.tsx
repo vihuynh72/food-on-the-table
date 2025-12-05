@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -53,31 +53,27 @@ const categories = [
 ];
 
 export function EditFoodModal({ item, open, onOpenChange, onSubmit }: EditFoodModalProps) {
-  const [name, setName] = useState(item?.name || "");
-  const [quantity, setQuantity] = useState(item?.quantity || "");
-  const [storage, setStorage] = useState<"fridge" | "freezer" | "pantry">(item?.storage || "fridge");
-  const [category, setCategory] = useState(item?.category || "");
-  const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(
-    item?.purchase_date ? new Date(item.purchase_date) : undefined
-  );
-  const [expiryDate, setExpiryDate] = useState<Date | undefined>(
-    item?.expiry_date ? new Date(item.expiry_date) : undefined
-  );
-  const [notes, setNotes] = useState(item?.notes || "");
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [storage, setStorage] = useState<"fridge" | "freezer" | "pantry">("fridge");
+  const [category, setCategory] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(undefined);
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
+  const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when item changes
-  useState(() => {
-    if (item) {
-      setName(item.name);
+  // Reset form when item changes or modal opens
+  useEffect(() => {
+    if (item && open) {
+      setName(item.name || "");
       setQuantity(item.quantity || "");
-      setStorage(item.storage);
+      setStorage(item.storage || "fridge");
       setCategory(item.category || "");
       setPurchaseDate(item.purchase_date ? new Date(item.purchase_date) : undefined);
       setExpiryDate(item.expiry_date ? new Date(item.expiry_date) : undefined);
       setNotes(item.notes || "");
     }
-  });
+  }, [item, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

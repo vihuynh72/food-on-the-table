@@ -52,7 +52,7 @@ export function QuickActionGrid({ onAddFood, onGenerateRecipe }: QuickActionGrid
       Icon: ChefHat,
       name: "Generate Recipe",
       description: "Get creative ideas for meals based on what you have.",
-      href: "#",
+      href: "/recipe-generator",
       cta: "Get Ideas",
       onClick: onGenerateRecipe,
       className: "lg:col-span-1 lg:row-span-1",

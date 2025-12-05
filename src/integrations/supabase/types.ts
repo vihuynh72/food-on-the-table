@@ -327,6 +327,7 @@ export type Database = {
       }
       food_items: {
         Row: {
+          ai_assessment: Json | null
           barcode: string | null
           category: string | null
           created_at: string | null
@@ -341,6 +342,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_assessment?: Json | null
           barcode?: string | null
           category?: string | null
           created_at?: string | null
@@ -355,6 +357,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_assessment?: Json | null
           barcode?: string | null
           category?: string | null
           created_at?: string | null
@@ -366,7 +369,7 @@ export type Database = {
           quantity?: string | null
           storage?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { evaluateFoodItem, FoodAssessment } from "@/lib/openai";
 
 // Helper to wrap Supabase calls with a timeout to prevent infinite hangs
 async function withTimeout<T>(
@@ -42,6 +43,7 @@ export interface FoodItem {
   expiry_date: string;
   barcode: string | null;
   notes: string | null;
+  ai_assessment: FoodAssessment | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,10 +84,25 @@ export function useFoodInventory() {
         .from("food_items")
         .select("*")
         .eq("user_id", user.id)
-        .order("expiry_date", { ascending: true });
+        .order("expiry_date", { ascending: true })
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return (data as FoodItem[]) ?? [];
+      
+      const typedData = (data as unknown as FoodItem[]) ?? [];
+
+      // Client-side sort to ensure absolute stability
+      return typedData.sort((a, b) => {
+        // Primary sort: Expiry Date
+        const dateA = new Date(a.expiry_date).getTime();
+        const dateB = new Date(b.expiry_date).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        
+        // Secondary sort: Creation Date (stable tie-breaker)
+        const createdA = new Date(a.created_at).getTime();
+        const createdB = new Date(b.created_at).getTime();
+        return createdA - createdB;
+      });
     },
     enabled: !!user,
   });
@@ -178,7 +195,7 @@ export function useFoodInventory() {
         .single();
 
       if (error) throw error;
-      return data as FoodItem;
+      return data as unknown as FoodItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
@@ -224,6 +241,96 @@ export function useFoodInventory() {
         description: "Failed to delete item",
         variant: "destructive",
       });
+    },
+  });
+
+  // Batch delete items
+  const batchDeleteItemsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!user) throw new Error("Not authenticated");
+      if (ids.length === 0) return;
+
+      const { error } = await supabase
+        .from("food_items")
+        .delete()
+        .in("id", ids);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["food_items"] });
+      toast({
+        title: "Items removed",
+        description: "Selected items have been removed from your inventory.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting items:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove items. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Evaluate item mutation
+  const evaluateItemMutation = useMutation({
+    mutationFn: async (item: FoodItem) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      const assessment = await evaluateFoodItem(
+        item.name,
+        item.quantity || "1",
+        item.expiry_date,
+        item.storage,
+        item.notes
+      );
+
+      const { data, error } = await supabase
+        .from("food_items")
+        .update({ ai_assessment: assessment as any })
+        .eq("id", item.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as FoodItem;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
+      toast({
+        title: "Analysis Complete",
+        description: `Analysis for ${data.name} is ready.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error evaluating item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Clear assessment mutation
+  const clearAssessmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase
+        .from("food_items")
+        .update({ ai_assessment: null })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as unknown as FoodItem;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
     },
   });
 
@@ -324,6 +431,30 @@ export function useFoodInventory() {
     [items, updateItem]
   );
 
+  const evaluateItem = useCallback(
+    async (item: FoodItem) => {
+      if (!user) return null;
+      try {
+        return await evaluateItemMutation.mutateAsync(item);
+      } catch {
+        return null;
+      }
+    },
+    [user, evaluateItemMutation]
+  );
+
+  const clearAssessment = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      try {
+        await clearAssessmentMutation.mutateAsync(id);
+      } catch (error) {
+        console.error("Failed to clear assessment:", error);
+      }
+    },
+    [user, clearAssessmentMutation]
+  );
+
   const fetchItems = useCallback(async () => {
     queryClient.invalidateQueries({ queryKey: ["food_items", user?.id] });
   }, [queryClient, user]);
@@ -365,8 +496,11 @@ export function useFoodInventory() {
     deleteItem,
     deleteAllItems,
     freezeItem,
+    evaluateItem,
+    clearAssessment,
     getItemsWithDaysLeft,
     getExpiringSoonItems,
     getExpiredItems,
+    batchDeleteItems: (ids: string[]) => batchDeleteItemsMutation.mutateAsync(ids),
   };
 }

@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CookingPot } from "@/components/food/CookingPot";
 
 type StorageFilter = "all" | "fridge" | "freezer" | "pantry";
 type StatusFilter = "all" | "expiring" | "expired";
@@ -57,6 +58,9 @@ export default function MyFood() {
     getItemsWithDaysLeft,
     getExpiringSoonItems,
     getExpiredItems,
+    evaluateItem,
+    clearAssessment,
+    batchDeleteItems,
   } = useFoodInventory();
 
   const [storageFilter, setStorageFilter] = useState<StorageFilter>("all");
@@ -68,10 +72,66 @@ export default function MyFood() {
   const [shareItem, setShareItem] = useState<FoodItem | null>(null);
   const [deleteItemData, setDeleteItemData] = useState<FoodItem | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [potItems, setPotItems] = useState<FoodItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [evaluatingItems, setEvaluatingItems] = useState<Set<string>>(new Set());
 
   const itemsWithDays = getItemsWithDaysLeft();
   const expiringSoon = getExpiringSoonItems();
   const expired = getExpiredItems();
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleConsume = async (item: FoodItem) => {
+    await deleteItem(item.id);
+    toast({
+      title: "Yum!",
+      description: `Marked ${item.name} as eaten.`,
+    });
+  };
+
+  const handleEvaluate = async (item: FoodItem) => {
+    setEvaluatingItems(prev => new Set(prev).add(item.id));
+    await evaluateItem(item);
+    setEvaluatingItems(prev => {
+      const next = new Set(prev);
+      next.delete(item.id);
+      return next;
+    });
+  };
+
+  const addToPot = (item: FoodItem) => {
+    if (!potItems.some(i => i.id === item.id)) {
+      setPotItems([...potItems, item]);
+      toast({
+        title: "Added to Pot",
+        description: `${item.name} is now in your cooking pot. Click the pot icon to generate recipes!`,
+      });
+    } else {
+      setPotItems(potItems.filter(i => i.id !== item.id));
+      toast({
+        title: "Removed from Pot",
+        description: `${item.name} has been removed from your cooking pot.`,
+      });
+    }
+  };
+
+  const removeFromPot = (itemId: string) => {
+    setPotItems(potItems.filter(i => i.id !== itemId));
+  };
+
+  const clearPot = () => {
+    setPotItems([]);
+  };
 
   // Show toast on mount if there are expiring items
   useEffect(() => {
@@ -158,10 +218,15 @@ export default function MyFood() {
   };
 
   const handleDeleteAll = async () => {
-    const success = await deleteAllItems();
-    if (success) {
-      setShowDeleteAllConfirm(false);
-    }
+    const idsToDelete = filteredItems.map(i => i.id);
+    if (idsToDelete.length === 0) return;
+    
+    await batchDeleteItems(idsToDelete);
+    setShowDeleteAllConfirm(false);
+    toast({
+      title: "Items Deleted",
+      description: `Successfully removed ${idsToDelete.length} items.`,
+    });
   };
 
   if (!user) {
@@ -200,9 +265,10 @@ export default function MyFood() {
                 size="lg"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                 onClick={() => setShowDeleteAllConfirm(true)}
+                disabled={filteredItems.length === 0}
               >
                 <Trash2 className="h-5 w-5 mr-2" />
-                Clear All
+                {filteredItems.length === itemsWithDays.length ? "Clear All" : `Clear Filtered (${filteredItems.length})`}
               </Button>
             )}
             <Button
@@ -323,6 +389,20 @@ export default function MyFood() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.2 }}
+                  drag
+                  dragSnapToOrigin
+                  whileDrag={{ scale: 1.05, zIndex: 50, cursor: "grabbing" }}
+                  onDragStart={() => setIsDragging(true)}
+                  onDragEnd={(_, info) => {
+                    setIsDragging(false);
+                    // Check if dropped in the bottom drop zone (bottom 25% of screen)
+                    const windowHeight = window.innerHeight;
+                    const dropZoneHeight = windowHeight * 0.25;
+                    
+                    if (info.point.y > windowHeight - dropZoneHeight) {
+                      addToPot(item);
+                    }
+                  }}
                 >
                   <FoodItemCard
                     item={item}
@@ -333,12 +413,45 @@ export default function MyFood() {
                     onShare={() => setShareItem(item)}
                     onFreeze={() => handleFreeze(item)}
                     onRemove={() => setDeleteItemData(item)}
+                    isSelected={selectedItems.has(item.id)}
+                    isInPot={potItems.some(p => p.id === item.id)}
+                    onToggleSelect={() => toggleSelection(item.id)}
+                    onAddToPot={() => addToPot(item)}
+                    onEvaluate={() => handleEvaluate(item)}
+                    onClearAssessment={() => clearAssessment(item.id)}
+                    onConsume={() => handleConsume(item)}
+                    isEvaluating={evaluatingItems.has(item.id)}
                   />
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
         )}
+
+        <CookingPot 
+          items={potItems} 
+          onRemoveItem={removeFromPot} 
+          onClear={clearPot} 
+        />
+
+        {/* Large Drop Zone Overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="fixed bottom-0 left-0 right-0 h-[25vh] bg-primary/10 backdrop-blur-sm border-t-4 border-primary/30 z-40 flex items-center justify-center pointer-events-none"
+            >
+              <div className="text-center animate-pulse">
+                <div className="bg-primary/20 p-4 rounded-full inline-block mb-2">
+                  <PackageIcon className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold text-primary">Drop here to cook!</h3>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Modals */}
@@ -368,7 +481,9 @@ export default function MyFood() {
         prefillData={shareItem ? {
           title: shareItem.name,
           category: shareItem.category || undefined,
-          expiryDate: new Date(shareItem.expiry_date)
+          expiryDate: new Date(shareItem.expiry_date),
+          quantity: shareItem.quantity || undefined,
+          description: shareItem.notes || `I have ${shareItem.quantity || "some"} ${shareItem.name} available for pickup.`,
         } : undefined}
       />
 
@@ -382,15 +497,23 @@ export default function MyFood() {
       <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear entire inventory?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {filteredItems.length === itemsWithDays.length 
+                ? "Clear entire inventory?" 
+                : `Delete ${filteredItems.length} filtered items?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all food items from your inventory.
+              This action cannot be undone. This will permanently delete 
+              {filteredItems.length === itemsWithDays.length 
+                ? " all food items " 
+                : ` the ${filteredItems.length} currently visible items `}
+              from your inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, delete everything
+              Yes, delete {filteredItems.length} items
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

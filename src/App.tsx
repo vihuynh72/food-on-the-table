@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Donate from "./pages/Donate";
 import Auth from "./pages/Auth";
 import CompleteProfile from "./pages/CompleteProfile";
+import RecipeGenerator from "./pages/RecipeGenerator";
 import NotFound from "./pages/NotFound";
 import { ProfileGuard } from "@/components/ProfileGuard";
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/donate" element={<Donate />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/recipe-generator" element={<RecipeGenerator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
