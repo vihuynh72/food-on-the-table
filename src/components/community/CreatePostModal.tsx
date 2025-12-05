@@ -39,6 +39,8 @@ interface CreatePostModalProps {
     title?: string;
     category?: string;
     expiryDate?: Date;
+    quantity?: string;
+    description?: string;
   };
   postToEdit?: CommunityPostWithUser | null;
   onDelete?: (post: CommunityPostWithUser) => void;
@@ -64,9 +66,9 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
   // Form State
   const [type] = useState<'offer'>('offer');
   const [title, setTitle] = useState(prefillData?.title || "");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(prefillData?.description || "");
   const [category, setCategory] = useState(prefillData?.category || "");
-  const [quantity, setQuantity] = useState("");
+  const [quantity, setQuantity] = useState(prefillData?.quantity || "");
   const [expiryDate, setExpiryDate] = useState<string>(
     prefillData?.expiryDate 
       ? format(prefillData.expiryDate, "yyyy-MM-dd'T'HH:mm") 
@@ -86,7 +88,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
     }
   }, [userPosition, postToEdit]);
 
-  // Populate form when editing
+  // Populate form when editing or when prefillData changes
   useEffect(() => {
     if (postToEdit) {
       setTitle(postToEdit.title);
@@ -106,6 +108,15 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
       if (postToEdit.tags) {
         setSelectedTags(postToEdit.tags);
       }
+    } else if (prefillData && open) {
+      // Populate from prefillData when opening
+      setTitle(prefillData.title || "");
+      setDescription(prefillData.description || "");
+      setCategory(prefillData.category || "");
+      setQuantity(prefillData.quantity || "");
+      if (prefillData.expiryDate) {
+        setExpiryDate(format(prefillData.expiryDate, "yyyy-MM-dd'T'HH:mm"));
+      }
     } else if (!open) {
       // Reset form when closed
       setTitle("");
@@ -117,7 +128,7 @@ export function CreatePostModal({ open, onOpenChange, prefillData, postToEdit, o
       setSelectedLocation(null);
       setSelectedTags([]);
     }
-  }, [postToEdit, open]);
+  }, [postToEdit, prefillData, open]);
 
   const handleZipCodeBlur = async () => {
     if (zipCode.length >= 5) {

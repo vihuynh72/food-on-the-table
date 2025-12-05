@@ -60,6 +60,7 @@ export default function MyFood() {
     getExpiredItems,
     evaluateItem,
     clearAssessment,
+    batchDeleteItems,
   } = useFoodInventory();
 
   const [storageFilter, setStorageFilter] = useState<StorageFilter>("all");
@@ -90,6 +91,14 @@ export default function MyFood() {
     setSelectedItems(newSelected);
   };
 
+  const handleConsume = async (item: FoodItem) => {
+    await deleteItem(item.id);
+    toast({
+      title: "Yum!",
+      description: `Marked ${item.name} as eaten.`,
+    });
+  };
+
   const handleEvaluate = async (item: FoodItem) => {
     setEvaluatingItems(prev => new Set(prev).add(item.id));
     await evaluateItem(item);
@@ -105,7 +114,7 @@ export default function MyFood() {
       setPotItems([...potItems, item]);
       toast({
         title: "Added to Pot",
-        description: `${item.name} is now in your cooking pot.`,
+        description: `${item.name} is now in your cooking pot. Click the pot icon to generate recipes!`,
       });
     } else {
       setPotItems(potItems.filter(i => i.id !== item.id));
@@ -209,10 +218,15 @@ export default function MyFood() {
   };
 
   const handleDeleteAll = async () => {
-    const success = await deleteAllItems();
-    if (success) {
-      setShowDeleteAllConfirm(false);
-    }
+    const idsToDelete = filteredItems.map(i => i.id);
+    if (idsToDelete.length === 0) return;
+    
+    await batchDeleteItems(idsToDelete);
+    setShowDeleteAllConfirm(false);
+    toast({
+      title: "Items Deleted",
+      description: `Successfully removed ${idsToDelete.length} items.`,
+    });
   };
 
   if (!user) {
@@ -251,9 +265,10 @@ export default function MyFood() {
                 size="lg"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                 onClick={() => setShowDeleteAllConfirm(true)}
+                disabled={filteredItems.length === 0}
               >
                 <Trash2 className="h-5 w-5 mr-2" />
-                Clear All
+                {filteredItems.length === itemsWithDays.length ? "Clear All" : `Clear Filtered (${filteredItems.length})`}
               </Button>
             )}
             <Button
@@ -404,6 +419,7 @@ export default function MyFood() {
                     onAddToPot={() => addToPot(item)}
                     onEvaluate={() => handleEvaluate(item)}
                     onClearAssessment={() => clearAssessment(item.id)}
+                    onConsume={() => handleConsume(item)}
                     isEvaluating={evaluatingItems.has(item.id)}
                   />
                 </motion.div>
@@ -465,7 +481,9 @@ export default function MyFood() {
         prefillData={shareItem ? {
           title: shareItem.name,
           category: shareItem.category || undefined,
-          expiryDate: new Date(shareItem.expiry_date)
+          expiryDate: new Date(shareItem.expiry_date),
+          quantity: shareItem.quantity || undefined,
+          description: shareItem.notes || `I have ${shareItem.quantity || "some"} ${shareItem.name} available for pickup.`,
         } : undefined}
       />
 
@@ -479,15 +497,23 @@ export default function MyFood() {
       <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear entire inventory?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {filteredItems.length === itemsWithDays.length 
+                ? "Clear entire inventory?" 
+                : `Delete ${filteredItems.length} filtered items?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all food items from your inventory.
+              This action cannot be undone. This will permanently delete 
+              {filteredItems.length === itemsWithDays.length 
+                ? " all food items " 
+                : ` the ${filteredItems.length} currently visible items `}
+              from your inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, delete everything
+              Yes, delete {filteredItems.length} items
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

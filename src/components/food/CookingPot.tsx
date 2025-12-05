@@ -89,7 +89,6 @@ export function CookingPot({ items, onRemoveItem, onClear }: CookingPotProps) {
               <Button
                 className="w-full gap-2"
                 onClick={handleGenerate}
-                disabled={items.length === 0}
               >
                 <ChefHat className="h-4 w-4" />
                 Generate Recipe

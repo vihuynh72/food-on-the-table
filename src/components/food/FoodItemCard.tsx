@@ -22,6 +22,7 @@ import {
   Check,
   Sparkles,
   X,
+  ChevronDown,
 } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
 import { foodKnowledgeBase } from "@/data/foodKnowledgeBase";
@@ -43,6 +44,7 @@ interface FoodItemCardProps {
   onAddToPot?: () => void;
   onEvaluate?: () => void;
   onClearAssessment?: () => void;
+  onConsume?: () => void;
   isEvaluating?: boolean;
 }
 
@@ -55,6 +57,7 @@ export function FoodItemCard({
   onShare,
   onFreeze,
   onRemove,
+  onConsume,
   isSelected = false,
   isInPot = false,
   onToggleSelect,
@@ -241,69 +244,148 @@ export function FoodItemCard({
                 {item.ai_assessment.discardable && <Badge variant="outline" className="h-5 text-[10px] px-1 bg-red-100 text-red-800 border-red-200 font-bold">Discard</Badge>}
              </div>
              <p className={cn(
-               "line-clamp-2 italic",
+               "line-clamp-2 italic mb-2",
                item.ai_assessment.discardable ? "text-red-800 dark:text-red-300 font-medium" : "text-muted-foreground"
              )}>"{item.ai_assessment.reason}"</p>
+
+             {/* Suggested Action Button */}
+             {item.ai_assessment.action && (
+               <div className="mt-2">
+                 {item.ai_assessment.action === "donate" && onShare && (
+                   <Button 
+                     size="sm" 
+                     className="w-full h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onShare();
+                     }}
+                   >
+                     <Share2 className="w-3 h-3 mr-1.5" />
+                     Share to Community
+                   </Button>
+                 )}
+                 {item.ai_assessment.action === "donate" && !onShare && onDonate && (
+                   <Button 
+                     size="sm" 
+                     className="w-full h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onDonate();
+                     }}
+                   >
+                     <HeartHandshake className="w-3 h-3 mr-1.5" />
+                     Find Donation Center
+                   </Button>
+                 )}
+                 {(item.ai_assessment.action === "cook" || item.ai_assessment.action === "eat") && (
+                   <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                       <Button 
+                         size="sm" 
+                         className="w-full h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                         onClick={(e) => e.stopPropagation()}
+                       >
+                         <Utensils className="w-3 h-3 mr-1.5" />
+                         Eat or Cook
+                         <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
+                       </Button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent align="end" className="w-48">
+                       <DropdownMenuItem onClick={(e) => {
+                         e.stopPropagation();
+                         if (onConsume) onConsume();
+                       }}>
+                         <Check className="mr-2 h-4 w-4" />
+                         Mark as Eaten
+                       </DropdownMenuItem>
+                       <DropdownMenuItem onClick={(e) => {
+                         e.stopPropagation();
+                         if (onAddToPot) onAddToPot();
+                       }}>
+                         <Soup className="mr-2 h-4 w-4" />
+                         Add to Pot (Recipes)
+                       </DropdownMenuItem>
+                     </DropdownMenuContent>
+                   </DropdownMenu>
+                 )}
+                 {item.ai_assessment.action === "discard" && (
+                   <Button 
+                     size="sm" 
+                     variant="destructive"
+                     className="w-full h-7 text-xs shadow-sm"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       onRemove();
+                     }}
+                   >
+                     <Trash2 className="w-3 h-3 mr-1.5" />
+                     Discard Item
+                   </Button>
+                 )}
+               </div>
+             )}
           </div>
         )}
         
-        {/* Action Overlay (Visible on Hover) */}
-        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-background via-background/95 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-around gap-2 z-10">
-           {!item.ai_assessment && onEvaluate ? (
-              <Button 
-                size="sm" 
-                variant="secondary"
-                className="flex-1 h-9 shadow-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-secondary-foreground/10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEvaluate();
-                }}
-                disabled={isEvaluating}
-              >
-                {isEvaluating ? <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
-                {isEvaluating ? "Analyzing..." : "Analyze"}
-              </Button>
-           ) : (
-              <Button 
-                size="sm" 
-                variant="default"
-                className="flex-1 h-9 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCookEat();
-                }}
-              >
-                <Utensils className="w-3.5 h-3.5 mr-1.5" />
-                Eat
-              </Button>
-           )}
-          
-          <Button 
-            size="sm" 
-            variant="secondary"
-            className="h-9 w-9 px-0 shadow-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            title="Edit"
-          >
-            <Edit className="w-3.5 h-3.5" />
-          </Button>
+        {/* Action Overlay (Visible on Hover) - Only show when not analyzed */}
+        {!item.ai_assessment && (
+          <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-background via-background/95 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-around gap-2 z-10">
+             {onEvaluate ? (
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  className="flex-1 h-9 shadow-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-secondary-foreground/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEvaluate();
+                  }}
+                  disabled={isEvaluating}
+                >
+                  {isEvaluating ? <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                  {isEvaluating ? "Analyzing..." : "Analyze"}
+                </Button>
+             ) : (
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  className="flex-1 h-9 shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCookEat();
+                  }}
+                >
+                  <Utensils className="w-3.5 h-3.5 mr-1.5" />
+                  Eat
+                </Button>
+             )}
+            
+            <Button 
+              size="sm" 
+              variant="secondary"
+              className="h-9 w-9 px-0 shadow-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              title="Edit"
+            >
+              <Edit className="w-3.5 h-3.5" />
+            </Button>
 
-          <Button 
-            size="sm" 
-            variant="destructive"
-            className="h-9 w-9 px-0 shadow-sm opacity-80 hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove();
-            }}
-            title="Remove"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+            <Button 
+              size="sm" 
+              variant="destructive"
+              className="h-9 w-9 px-0 shadow-sm opacity-80 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+              title="Remove"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
       
       {/* Progress Bar Background (Subtle) */}
