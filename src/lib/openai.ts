@@ -6,6 +6,7 @@ const OPENAI_API_KEY = "sk-proj-bEmhiUtemYH1GcPv9s-hHWkL2u9FquZhzQyKaqWTBui4VV5W
 
 export interface Recipe {
   title: string;
+  description?: string;
   ingredients: string[];
   instructions: string[];
   cookingTime: string;
@@ -13,12 +14,16 @@ export interface Recipe {
   difficulty: string;
   calories?: string;
   tips?: string[];
+  tags?: string[];
 }
 
 export interface RecipeOptions {
   cuisine?: string;
   cookingTime?: string;
   dietary?: string[];
+  mealType?: string;
+  flavorProfile?: string;
+  cookingMethod?: string;
 }
 
 export async function generateRecipeFromIngredients(
@@ -29,42 +34,39 @@ export async function generateRecipeFromIngredients(
     throw new Error("Please provide at least one ingredient.");
   }
 
-  const { cuisine, cookingTime, dietary } = options;
+  const { cuisine, cookingTime, dietary, mealType, flavorProfile, cookingMethod } = options;
 
   let prompt = `
-    You are a professional home chef creating a recipe for a casual home cook.
-    Create a delicious, simple, and easy-to-follow recipe using the following ingredients: ${ingredients.join(", ")}.
-    You can assume basic pantry staples like salt, pepper, oil, water, spices, etc.
-    Avoid overly complex techniques or obscure ingredients unless specified.
+    You are a world-class creative chef. Your goal is to invent a unique, mouth-watering recipe based on these ingredients: ${ingredients.join(", ")}.
+    
+    Constraints & Preferences:
+    - Pantry Staples: Assume basic salt, pepper, oil, sugar, flour, common spices are available.
+    - Creativity: Be creative! Don't just make a generic salad if the ingredients allow for something cooked and interesting.
   `;
 
-  if (cuisine && cuisine !== "any") {
-    prompt += `\nThe recipe should be in the style of ${cuisine} cuisine.`;
-  }
-
-  if (cookingTime && cookingTime !== "any") {
-    prompt += `\nThe cooking time should be approximately ${cookingTime}.`;
-  }
-
-  if (dietary && dietary.length > 0) {
-    prompt += `\nThe recipe must adhere to the following dietary restrictions: ${dietary.join(", ")}.`;
-  }
+  if (cuisine && cuisine !== "any") prompt += `\n- Cuisine Style: ${cuisine}`;
+  if (cookingTime && cookingTime !== "any") prompt += `\n- Time Constraint: ${cookingTime}`;
+  if (dietary && dietary.length > 0) prompt += `\n- Dietary Restrictions: ${dietary.join(", ")}`;
+  if (mealType && mealType !== "any") prompt += `\n- Meal Type: ${mealType}`;
+  if (flavorProfile && flavorProfile !== "any") prompt += `\n- Flavor Profile: ${flavorProfile}`;
+  if (cookingMethod && cookingMethod !== "any") prompt += `\n- Preferred Cooking Method: ${cookingMethod}`;
     
   prompt += `
-    Please provide the response in the following strict JSON format:
+    Response Format (JSON only):
     {
-      "title": "Recipe Title (Creative but clear)",
-      "ingredients": ["List of ingredients with precise quantities (e.g., '2 cups rice', '1 tbsp olive oil')"],
-      "instructions": ["Clear, step-by-step cooking instructions. Use **bold** for temperatures (e.g., **350°F**) and times (e.g., **20 mins**)."],
-      "cookingTime": "Estimated cooking time (e.g., '30 mins')",
-      "servings": "Number of servings (e.g., '2-3 people')",
+      "title": "A catchy, appetizing title (e.g., 'Rustic Tuscan Bean Stew' not just 'Bean Stew')",
+      "description": "A short, 1-2 sentence 'hero' description that makes the user want to eat this immediately. Describe the taste and texture.",
+      "ingredients": ["List of ingredients with precise quantities. Group them logically if possible."],
+      "instructions": ["Clear, step-by-step instructions. Use **bold** for key actions, times, and temperatures."],
+      "cookingTime": "e.g., '30 mins'",
+      "servings": "e.g., '2 servings'",
       "difficulty": "Easy/Medium/Hard",
-      "calories": "Estimated calories per serving (e.g., '450 kcal')",
-      "tips": ["2-3 helpful chef's tips for success or variations"]
+      "calories": "e.g., '450 kcal'",
+      "tips": ["2-3 pro chef tips for elevating the dish, substitutions, or plating ideas."],
+      "tags": ["3-4 short tags describing the vibe, e.g., 'Comfort Food', 'Spicy', 'One-Pot'"]
     }
     
-    Ensure the instructions are detailed but concise and easy to read.
-    Do not include any markdown formatting like \`\`\`json. Just the raw JSON object.
+    Do not include markdown formatting. Just raw JSON.
   `;
 
   try {

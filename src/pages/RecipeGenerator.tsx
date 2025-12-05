@@ -43,6 +43,9 @@ export default function RecipeGenerator() {
   const [cuisine, setCuisine] = useState<string>("any");
   const [cookingTime, setCookingTime] = useState<string>("any");
   const [dietary, setDietary] = useState<string>("none");
+  const [mealType, setMealType] = useState<string>("any");
+  const [flavorProfile, setFlavorProfile] = useState<string>("any");
+  const [cookingMethod, setCookingMethod] = useState<string>("any");
 
   // Consumption tracking
   const [showConsumeDialog, setShowConsumeDialog] = useState(false);
@@ -182,7 +185,10 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
       const result = await generateRecipeFromIngredients(allIngredients, {
         cuisine,
         cookingTime,
-        dietary: dietary !== "none" ? [dietary] : undefined
+        dietary: dietary !== "none" ? [dietary] : undefined,
+        mealType,
+        flavorProfile,
+        cookingMethod
       });
       setRecipe(result);
       toast({
@@ -201,59 +207,61 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-6xl">
         <Button 
           variant="ghost" 
-          className="mb-6 pl-0 hover:bg-transparent hover:text-primary" 
+          className="mb-8 pl-0 hover:bg-transparent hover:text-primary" 
           onClick={() => navigate("/")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>
 
-        <div className="space-y-8">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
-              <ChefHat className="h-8 w-8 text-primary" />
+        <div className="space-y-10">
+          <div className="text-center space-y-5">
+            <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full">
+              <ChefHat className="h-10 w-10 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">AI Recipe Generator</h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">AI Recipe Generator</h1>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
               Customize your preferences and let our AI chef create a delicious recipe for you.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
-            <Card className="border-2 border-primary/20 shadow-lg h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Utensils className="h-5 w-5 text-primary" />
+          <div className="grid gap-8 lg:grid-cols-2">
+            <Card className="border-2 border-primary/20 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Utensils className="h-5 w-5 text-primary" />
+                  </div>
                   Ingredients
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base mt-2">
                   What's in your pot? Add more if needed.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 pt-2">
                 {selectedTags.length > 0 && (
-                  <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground mb-2 block">
+                  <div className="bg-muted/30 p-5 rounded-xl border border-border/50">
+                    <Label className="text-xs font-semibold uppercase text-muted-foreground mb-3 block tracking-wide">
                       From your Cooking Pot
                     </Label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {selectedTags.map((tag) => (
                         <Badge 
                           key={tag} 
                           variant="secondary"
-                          className="pl-3 pr-1 py-1 text-sm bg-background border-primary/20 text-foreground hover:bg-background"
+                          className="pl-4 pr-2 py-2 text-sm bg-background border border-primary/20 text-foreground hover:bg-background shadow-sm"
                         >
                           {tag}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-4 w-4 ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full"
+                            className="h-5 w-5 ml-2 hover:bg-destructive/10 hover:text-destructive rounded-full"
                             onClick={() => handleRemoveTag(tag)}
                           >
                             <X className="h-3 w-3" />
@@ -264,8 +272,8 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="ingredients">Add more ingredients</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="ingredients" className="text-sm font-medium">Add more ingredients</Label>
                   <div className="relative">
                     <input
                       id="ingredients"
@@ -283,9 +291,9 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
                           }
                         }
                       }}
-                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-12 w-full rounded-lg border border-input bg-background px-4 py-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-shadow"
                     />
-                    <p className="text-xs text-muted-foreground mt-1.5">
+                    <p className="text-sm text-muted-foreground mt-2">
                       Press <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">Enter</kbd> to add
                     </p>
                   </div>
@@ -293,80 +301,135 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
               </CardContent>
             </Card>
 
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-primary" />
-                  Preferences
+            <Card className="shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Filter className="h-5 w-5 text-primary" />
+                  </div>
+                  Customize Your Meal
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Cuisine Style</Label>
-                  <Select value={cuisine} onValueChange={setCuisine}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Style</SelectItem>
-                      <SelectItem value="Italian">Italian</SelectItem>
-                      <SelectItem value="Mexican">Mexican</SelectItem>
-                      <SelectItem value="Asian">Asian</SelectItem>
-                      <SelectItem value="Indian">Indian</SelectItem>
-                      <SelectItem value="Mediterranean">Mediterranean</SelectItem>
-                      <SelectItem value="American">American</SelectItem>
-                      <SelectItem value="French">French</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <CardContent className="space-y-6 pt-2">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Meal Type</Label>
+                    <Select value={mealType} onValueChange={setMealType}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Any Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Type</SelectItem>
+                        <SelectItem value="Breakfast">Breakfast</SelectItem>
+                        <SelectItem value="Lunch">Lunch</SelectItem>
+                        <SelectItem value="Dinner">Dinner</SelectItem>
+                        <SelectItem value="Snack">Snack</SelectItem>
+                        <SelectItem value="Dessert">Dessert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Cooking Time</Label>
-                  <Select value={cookingTime} onValueChange={setCookingTime}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Time" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Time</SelectItem>
-                      <SelectItem value="Under 15 mins">Under 15 mins</SelectItem>
-                      <SelectItem value="Under 30 mins">Under 30 mins</SelectItem>
-                      <SelectItem value="Under 1 hour">Under 1 hour</SelectItem>
-                      <SelectItem value="Slow Cook">Slow Cook (1hr+)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Cuisine Style</Label>
+                    <Select value={cuisine} onValueChange={setCuisine}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Any Style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Style</SelectItem>
+                        <SelectItem value="Italian">Italian</SelectItem>
+                        <SelectItem value="Mexican">Mexican</SelectItem>
+                        <SelectItem value="Asian">Asian</SelectItem>
+                        <SelectItem value="Indian">Indian</SelectItem>
+                        <SelectItem value="Mediterranean">Mediterranean</SelectItem>
+                        <SelectItem value="American">American</SelectItem>
+                        <SelectItem value="French">French</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Dietary</Label>
-                  <Select value={dietary} onValueChange={setDietary}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="No Restrictions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Restrictions</SelectItem>
-                      <SelectItem value="Vegetarian">Vegetarian</SelectItem>
-                      <SelectItem value="Vegan">Vegan</SelectItem>
-                      <SelectItem value="Gluten-Free">Gluten-Free</SelectItem>
-                      <SelectItem value="Keto">Keto</SelectItem>
-                      <SelectItem value="Paleo">Paleo</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Flavor Profile</Label>
+                    <Select value={flavorProfile} onValueChange={setFlavorProfile}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Any Flavor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Flavor</SelectItem>
+                        <SelectItem value="Savory">Savory</SelectItem>
+                        <SelectItem value="Sweet">Sweet</SelectItem>
+                        <SelectItem value="Spicy">Spicy</SelectItem>
+                        <SelectItem value="Tangy">Tangy / Fresh</SelectItem>
+                        <SelectItem value="Comfort">Comfort / Rich</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Cooking Method</Label>
+                    <Select value={cookingMethod} onValueChange={setCookingMethod}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Any Method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Method</SelectItem>
+                        <SelectItem value="Stovetop">Stovetop</SelectItem>
+                        <SelectItem value="Oven">Oven / Roast</SelectItem>
+                        <SelectItem value="One-Pot">One-Pot / Pan</SelectItem>
+                        <SelectItem value="Soup">Soup / Stew</SelectItem>
+                        <SelectItem value="No-Cook">Salad / No-Cook</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Cooking Time</Label>
+                    <Select value={cookingTime} onValueChange={setCookingTime}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Any Time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Time</SelectItem>
+                        <SelectItem value="Under 15 mins">Quick (&lt; 15m)</SelectItem>
+                        <SelectItem value="Under 30 mins">Medium (&lt; 30m)</SelectItem>
+                        <SelectItem value="Under 1 hour">Long (&lt; 1h)</SelectItem>
+                        <SelectItem value="Slow Cook">Slow Cook (1h+)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <Label className="text-sm font-medium">Dietary</Label>
+                    <Select value={dietary} onValueChange={setDietary}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="No Restrictions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Restrictions</SelectItem>
+                        <SelectItem value="Vegetarian">Vegetarian</SelectItem>
+                        <SelectItem value="Vegan">Vegan</SelectItem>
+                        <SelectItem value="Gluten-Free">Gluten-Free</SelectItem>
+                        <SelectItem value="Keto">Keto</SelectItem>
+                        <SelectItem value="Paleo">Paleo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Button 
                   onClick={handleGenerate} 
-                  className="w-full mt-4" 
+                  className="w-full mt-8 h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg transition-all duration-300 hover:scale-[1.02]" 
                   size="lg"
                   disabled={loading || (selectedTags.length === 0 && !ingredients)}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                      Crafting your recipe...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-4 w-4" />
+                      <ChefHat className="mr-3 h-6 w-6" />
                       Generate Recipe
                     </>
                   )}
@@ -376,42 +439,70 @@ ${recipe.tips ? `\nCHEF'S TIPS:\n${recipe.tips.join('\n')}` : ''}
           </div>
 
           {recipe && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-8">
-              <Card className="overflow-hidden border-none shadow-xl bg-gradient-to-b from-card to-muted/30">
-                <div className="h-2 bg-primary w-full" />
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-3xl font-bold text-primary mb-2">
-                        {recipe.title}
-                      </CardTitle>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
-                        <div className="flex items-center gap-1 bg-background px-3 py-1 rounded-full border shadow-sm">
-                          <Clock className="h-4 w-4 text-primary" />
-                          {recipe.cookingTime}
-                        </div>
-                        <div className="flex items-center gap-1 bg-background px-3 py-1 rounded-full border shadow-sm">
-                          <Users className="h-4 w-4 text-primary" />
-                          {recipe.servings} servings
-                        </div>
-                        <div className="flex items-center gap-1 bg-background px-3 py-1 rounded-full border shadow-sm">
-                          <Flame className="h-4 w-4 text-primary" />
-                          {recipe.calories || "N/A"} cal
-                        </div>
-                        <div className="flex items-center gap-1 bg-background px-3 py-1 rounded-full border shadow-sm">
-                          <span className="font-semibold text-primary mr-1">Difficulty:</span>
-                          {recipe.difficulty}
-                        </div>
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 mt-12 mb-20">
+              <Card className="overflow-hidden border-none shadow-2xl bg-card ring-1 ring-border/50">
+                <div className="h-3 bg-gradient-to-r from-orange-400 via-primary to-green-400 w-full" />
+                <CardHeader className="pb-6 pt-8 px-8 text-center">
+                  <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
+                    <Utensils className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-4xl font-bold text-foreground mb-3 tracking-tight">
+                    {recipe.title}
+                  </CardTitle>
+                  {recipe.description && (
+                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto italic leading-relaxed">
+                      "{recipe.description}"
+                    </p>
+                  )}
+                  
+                  <div className="flex flex-wrap justify-center gap-3 mt-6">
+                    {recipe.tags?.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="px-3 py-1 text-sm font-medium bg-secondary/50">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-6 mt-8 pb-4 border-b border-border/50">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-full text-orange-600 dark:text-orange-400">
+                        <Clock className="h-5 w-5" />
                       </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Time</span>
+                      <span className="font-semibold">{recipe.cookingTime}</span>
                     </div>
-                    <div className="flex gap-2 print:hidden">
-                      <Button variant="outline" size="icon" onClick={handlePrint} title="Print Recipe">
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={handleDownload} title="Download Text">
-                        <Download className="h-4 w-4" />
-                      </Button>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-full text-blue-600 dark:text-blue-400">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Servings</span>
+                      <span className="font-semibold">{recipe.servings}</span>
                     </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full text-red-600 dark:text-red-400">
+                        <Flame className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calories</span>
+                      <span className="font-semibold">{recipe.calories || "N/A"}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400">
+                        <ChefHat className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Difficulty</span>
+                      <span className="font-semibold">{recipe.difficulty}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center gap-3 mt-6 print:hidden">
+                    <Button variant="outline" size="sm" onClick={handlePrint} title="Print Recipe">
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDownload} title="Download Text">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-8">
