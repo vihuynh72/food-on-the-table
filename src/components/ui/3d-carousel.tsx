@@ -1,4 +1,3 @@
-"use client";
 import { ArrowRight, ArrowLeft, MapPin, Clock, User, Tag, AlertCircle, Utensils } from "lucide-react";
 import { useState, useRef, useId, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";

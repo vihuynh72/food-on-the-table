@@ -1,5 +1,3 @@
-"use client"
-
 import { MeshGradient } from "@paper-design/shaders-react"
 import { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
