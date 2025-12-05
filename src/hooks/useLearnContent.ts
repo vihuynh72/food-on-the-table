@@ -101,6 +101,88 @@ export function useLearnContent() {
     enabled: !!user,
   });
 
+  // Fetch user likes
+  const likesQuery = useQuery({
+    queryKey: ["learn_user_likes", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("learn_user_likes")
+        .select("lesson_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data.map((l: { lesson_id: string }) => l.lesson_id);
+    },
+    enabled: !!user,
+  });
+
+  // Fetch user saves
+  const savesQuery = useQuery({
+    queryKey: ["learn_user_saves", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("learn_user_saves")
+        .select("lesson_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data.map((s: { lesson_id: string }) => s.lesson_id);
+    },
+    enabled: !!user,
+  });
+
+  // Toggle like mutation
+  const toggleLikeMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      const isLiked = likesQuery.data?.includes(lessonId);
+
+      if (isLiked) {
+        const { error } = await supabase
+          .from("learn_user_likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("lesson_id", lessonId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("learn_user_likes")
+          .insert({ user_id: user.id, lesson_id: lessonId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["learn_user_likes"] });
+    },
+  });
+
+  // Toggle save mutation
+  const toggleSaveMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      if (!user) throw new Error("Not authenticated");
+      const isSaved = savesQuery.data?.includes(lessonId);
+
+      if (isSaved) {
+        const { error } = await supabase
+          .from("learn_user_saves")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("lesson_id", lessonId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("learn_user_saves")
+          .insert({ user_id: user.id, lesson_id: lessonId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["learn_user_saves"] });
+    },
+  });
+
   // Combine categories with lessons and progress
   const categoriesWithProgress: CategoryWithProgress[] = (categoriesQuery.data || []).map(category => {
     const categoryLessons = (lessonsQuery.data || []).filter(l => l.category_id === category.id);
@@ -236,5 +318,9 @@ export function useLearnContent() {
     completeLesson: completeLessonMutation.mutate,
     isCompletingLesson: completeLessonMutation.isPending,
     overallProgress,
+    likedLessonIds: likesQuery.data || [],
+    savedLessonIds: savesQuery.data || [],
+    toggleLike: toggleLikeMutation.mutate,
+    toggleSave: toggleSaveMutation.mutate,
   };
 }

@@ -12,6 +12,10 @@ export default function Learn() {
     error,
     completeLesson,
     progress,
+    likedLessonIds,
+    savedLessonIds,
+    toggleLike,
+    toggleSave,
   } = useLearnContent();
 
   // Create a Set of completed lesson IDs for efficient lookup
@@ -68,6 +72,10 @@ export default function Learn() {
               categories={categories}
               completedLessonIds={completedLessonIds}
               onLessonComplete={handleLessonComplete}
+              likedLessonIds={new Set(likedLessonIds)}
+              savedLessonIds={new Set(savedLessonIds)}
+              onToggleLike={toggleLike}
+              onToggleSave={toggleSave}
             />
           )}
         </div>
