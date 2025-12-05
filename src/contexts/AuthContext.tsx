@@ -8,6 +8,12 @@ interface Profile {
   username: string | null;
   zip_code: string | null;
   email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  leaderboard_visible: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {

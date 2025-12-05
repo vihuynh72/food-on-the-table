@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import MyFood from "./pages/MyFood";
 import Community from "./pages/Community";
-import Impact from "./pages/Impact";
+import Impact from "./pages/ImpactNew";
 import Learn from "./pages/Learn";
 import Settings from "./pages/Settings";
 import Donate from "./pages/Donate";

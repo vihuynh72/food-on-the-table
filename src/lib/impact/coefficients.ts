@@ -43,6 +43,9 @@ export const POINTS_CONFIG = {
   community_offer_completed: 50,
   community_pickup_completed: 30,
   donation_dropoff: 40,
+  learn_lesson_completed: 5,
+  learn_quiz_completed: 3,
+  learn_quiz_perfect: 10, // Bonus for 100% score
 };
 
 export const LEVEL_THRESHOLDS = [
