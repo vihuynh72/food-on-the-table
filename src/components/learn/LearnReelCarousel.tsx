@@ -144,17 +144,18 @@ export function LearnReelCarousel({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
-      {/* Left Navigation */}
+      {/* Left Navigation - positioned closer to the card */}
       <button
         onClick={goToPrevious}
         disabled={currentIndex === 0}
         className={cn(
-          "absolute left-2 md:left-8 z-40 p-3 rounded-full",
+          "absolute z-40 p-3 rounded-full",
           "bg-white/90 shadow-lg backdrop-blur-sm",
           "hover:bg-white hover:scale-110 active:scale-95",
           "transition-all duration-200",
           "disabled:opacity-0 disabled:pointer-events-none",
-          "hidden md:flex items-center justify-center"
+          "hidden md:flex items-center justify-center",
+          "left-[calc(50%-250px)] lg:left-[calc(50%-260px)]"
         )}
       >
         <ChevronLeft className="w-6 h-6 text-woodland" />
@@ -199,17 +200,18 @@ export function LearnReelCarousel({
         </AnimatePresence>
       </div>
 
-      {/* Right Navigation */}
+      {/* Right Navigation - positioned closer to the card */}
       <button
         onClick={goToNext}
         disabled={currentIndex === shuffledLessons.length - 1}
         className={cn(
-          "absolute right-2 md:right-8 z-40 p-3 rounded-full",
+          "absolute z-40 p-3 rounded-full",
           "bg-white/90 shadow-lg backdrop-blur-sm",
           "hover:bg-white hover:scale-110 active:scale-95",
           "transition-all duration-200",
           "disabled:opacity-0 disabled:pointer-events-none",
-          "hidden md:flex items-center justify-center"
+          "hidden md:flex items-center justify-center",
+          "right-[calc(50%-250px)] lg:right-[calc(50%-260px)]"
         )}
       >
         <ChevronRight className="w-6 h-6 text-woodland" />

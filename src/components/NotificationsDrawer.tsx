@@ -22,7 +22,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
-import { InterestChatDrawer } from "@/components/community/InterestChatDrawer";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -63,9 +63,6 @@ const notificationIconMap: Record<string, typeof Bell> = {
 
 export function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerProps) {
   const navigate = useNavigate();
-  const [chatOpen, setChatOpen] = useState(false);
-  const [selectedInterestId, setSelectedInterestId] = useState<string | null>(null);
-  const [chatUserName, setChatUserName] = useState<string>("");
   const [selectionMode, setSelectionMode] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [confirmDeleteRead, setConfirmDeleteRead] = useState(false);
@@ -92,17 +89,34 @@ export function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerP
 
   const readCount = notifications.filter(n => n.read).length;
 
-  const openChat = (notification: Notification) => {
-    if (notification.reference_type === "community_interest" && notification.reference_id) {
-      // Extract name from title (e.g., "John is interested in your post" -> "John")
-      const nameMatch = notification.title.match(/^(.+?) (is interested|accepted|declined)/);
-      const msgNameMatch = notification.title.match(/^New message from (.+)$/);
-      const userName = nameMatch?.[1] || msgNameMatch?.[1] || "User";
-      
-      setSelectedInterestId(notification.reference_id);
-      setChatUserName(userName);
-      setChatOpen(true);
+  const openChat = async (notification: Notification) => {
+    // Handle conversation type - navigate directly to messages
+    if (notification.reference_type === "conversation" && notification.reference_id) {
       markAsRead(notification.id);
+      navigate(`/messages?id=${notification.reference_id}`);
+      onOpenChange(false);
+      return;
+    }
+    
+    // Handle community_interest type - find or create conversation, then navigate
+    if (notification.reference_type === "community_interest" && notification.reference_id) {
+      markAsRead(notification.id);
+      
+      // Find conversation linked to this interest
+      // Cast supabase to any to avoid type errors until types are regenerated
+      const { data: conversation } = await (supabase as any)
+        .from("conversations")
+        .select("id")
+        .eq("interest_id", notification.reference_id)
+        .single();
+      
+      if (conversation) {
+        navigate(`/messages?id=${conversation.id}`);
+      } else {
+        // Fallback: navigate to messages page (conversation might be created by trigger)
+        navigate("/messages");
+      }
+      onOpenChange(false);
     }
   };
 
@@ -121,6 +135,9 @@ export function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerP
     // Navigate based on reference type
     if (notification.reference_type === "community_post" && notification.reference_id) {
       navigate(`/community?post=${notification.reference_id}`);
+      onOpenChange(false);
+    } else if (notification.reference_type === "conversation" && notification.reference_id) {
+      navigate(`/messages?id=${notification.reference_id}`);
       onOpenChange(false);
     } else if (notification.reference_type === "community_interest" && notification.reference_id) {
       navigate("/community?tab=requests");
@@ -336,7 +353,7 @@ export function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerP
                           <p className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                           </p>
-                          {!selectionMode && notification.reference_type === "community_interest" && (
+                          {!selectionMode && (notification.reference_type === "community_interest" || notification.reference_type === "conversation") && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -363,14 +380,6 @@ export function NotificationsDrawer({ open, onOpenChange }: NotificationsDrawerP
           )}
         </ScrollArea>
       </SheetContent>
-
-      {/* Chat Drawer */}
-      <InterestChatDrawer
-        open={chatOpen}
-        onOpenChange={setChatOpen}
-        interestId={selectedInterestId}
-        otherUserName={chatUserName}
-      />
 
       {/* Confirm Delete All Dialog */}
       <AlertDialog open={confirmDeleteAll} onOpenChange={setConfirmDeleteAll}>

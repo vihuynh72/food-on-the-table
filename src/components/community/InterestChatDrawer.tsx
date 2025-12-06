@@ -1,27 +1,19 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Send, Loader2, User } from "lucide-react";
+import { Send, Loader2, User, ExternalLink, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  useGetOrCreateConversation, 
+  useConversation,
+  useChatImageUpload 
+} from "@/hooks/useConversations";
 import { cn } from "@/lib/utils";
-
-// Use any to work around missing types
-const db = supabase as any;
-
-interface Message {
-  id: string;
-  sender_id: string;
-  message: string;
-  created_at: string;
-  sender_name: string;
-  sender_avatar: string | null;
-}
 
 interface InterestChatDrawerProps {
   open: boolean;
@@ -38,130 +30,74 @@ export function InterestChatDrawer({
   postTitle,
   otherUserName 
 }: InterestChatDrawerProps) {
-  const { user, profile } = useAuth();
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState("");
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<{ file: File; preview: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch messages for this interest from the interest_messages table
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ["interest_messages", interestId],
-    queryFn: async () => {
-      if (!interestId || !user) return [];
+  // Get or create conversation when drawer opens with an interest
+  const { getOrCreateConversation, isLoading: isCreatingConversation } = useGetOrCreateConversation();
+  
+  // Get conversation and messages
+  const {
+    conversation,
+    messages,
+    messagesLoading,
+    sendMessage,
+    deleteMessage,
+    isSending,
+  } = useConversation(conversationId);
 
-      // Get all messages for this interest from the dedicated table
-      const { data: messagesData, error } = await db
-        .from("interest_messages")
-        .select("id, interest_id, sender_id, message, created_at")
-        .eq("interest_id", interestId)
-        .order("created_at", { ascending: true });
+  // Image upload
+  const { uploadImage, isUploading } = useChatImageUpload();
 
-      if (error) {
-        console.error("Error fetching messages:", error);
-        // Fallback to old notification-based approach if table doesn't exist yet
-        return await fetchMessagesFromNotifications();
-      }
-
-      if (!messagesData || messagesData.length === 0) {
-        // Fallback: check if there's an initial message in community_interests
-        return await fetchMessagesFromNotifications();
-      }
-
-      // Get unique sender IDs
-      const senderIds = [...new Set(messagesData.map((m: any) => m.sender_id))];
-      
-      // Fetch profiles for all senders
-      const { data: profiles } = await db
-        .from("profiles")
-        .select("user_id, username, first_name, avatar_url")
-        .in("user_id", senderIds);
-
-      const profileMap = new Map<string, { user_id: string; username: string | null; first_name: string | null; avatar_url: string | null }>(
-        (profiles || []).map((p: any) => [p.user_id, p])
-      );
-
-      // Map messages with sender info
-      return messagesData.map((m: any) => {
-        const senderProfile = profileMap.get(m.sender_id);
-        return {
-          id: m.id,
-          sender_id: m.sender_id,
-          message: m.message,
-          created_at: m.created_at,
-          sender_name: senderProfile?.username || senderProfile?.first_name || "Someone",
-          sender_avatar: senderProfile?.avatar_url || null,
-        };
-      }) as Message[];
-    },
-    enabled: !!interestId && !!user && open,
-    refetchInterval: open ? 3000 : false, // Poll every 3 seconds when open
-  });
-
-  // Fallback function for old notification-based messages
-  const fetchMessagesFromNotifications = async (): Promise<Message[]> => {
-    if (!interestId) return [];
-
-    // Get the initial interest message
-    const { data: interest } = await db
-      .from("community_interests")
-      .select("message, created_at, seeker_id")
-      .eq("id", interestId)
-      .single();
-
-    const allMessages: Message[] = [];
-
-    if (interest?.message) {
-      const { data: seekerProfile } = await db
-        .from("profiles")
-        .select("username, first_name, avatar_url")
-        .eq("user_id", interest.seeker_id)
-        .single();
-
-      allMessages.push({
-        id: "initial",
-        sender_id: interest.seeker_id,
-        message: interest.message,
-        created_at: interest.created_at,
-        sender_name: seekerProfile?.username || seekerProfile?.first_name || "Someone",
-        sender_avatar: seekerProfile?.avatar_url,
-      });
+  // Get or create conversation when interest ID changes
+  useEffect(() => {
+    if (open && interestId && !conversationId) {
+      getOrCreateConversation(interestId).then((id) => {
+        setConversationId(id);
+      }).catch(console.error);
     }
+  }, [open, interestId, conversationId, getOrCreateConversation]);
 
-    return allMessages;
-  };
-
-  // Send message mutation
-  const sendMessage = useMutation({
-    mutationFn: async (message: string) => {
-      if (!interestId) throw new Error("No interest ID");
-
-      const { data, error } = await db.rpc("send_interest_message", {
-        p_interest_id: interestId,
-        p_message: message,
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
+  // Reset conversation ID when drawer closes
+  useEffect(() => {
+    if (!open) {
+      setConversationId(null);
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["interest_messages", interestId] });
-    },
-    onError: (error) => {
-      console.error("Error sending message:", error);
-    },
-  });
+      setImagePreview(null);
+    }
+  }, [open]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages.length]);
 
-  const handleSend = () => {
-    if (!newMessage.trim()) return;
-    sendMessage.mutate(newMessage.trim());
+  const handleSend = async () => {
+    if (!newMessage.trim() && !imagePreview) return;
+
+    let imageUrl: string | undefined;
+    let imagePath: string | undefined;
+
+    if (imagePreview) {
+      const result = await uploadImage(imagePreview.file);
+      if (result) {
+        imageUrl = result.url;
+        imagePath = result.path;
+      } else {
+        return; // Upload failed
+      }
+    }
+
+    sendMessage(newMessage.trim() || undefined, imageUrl, imagePath);
+    setNewMessage("");
+    setImagePreview(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -171,16 +107,56 @@ export function InterestChatDrawer({
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview({ file, preview: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const openFullChat = () => {
+    if (conversationId) {
+      navigate(`/messages?id=${conversationId}`);
+      onOpenChange(false);
+    }
+  };
+
+  const isLoading = isCreatingConversation || messagesLoading;
+
+  // Get display name from conversation or props
+  const displayName = conversation?.other_user?.username 
+    || conversation?.other_user?.first_name 
+    || otherUserName 
+    || "User";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-96 p-0 flex flex-col">
-        <SheetHeader className="px-4 py-3 border-b">
+        <SheetHeader className="px-4 py-3 border-b pr-12">
           <SheetTitle className="text-left">
             <div className="flex flex-col gap-0.5">
-              <span>Chat with {otherUserName || "User"}</span>
-              {postTitle && (
+              <div className="flex items-center gap-2">
+                <span>Chat with {displayName}</span>
+                {conversationId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={openFullChat}
+                    title="Open full chat"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              {(postTitle || conversation?.post?.title) && (
                 <span className="text-xs font-normal text-muted-foreground">
-                  About: {postTitle}
+                  About: {postTitle || conversation?.post?.title}
                 </span>
               )}
             </div>
@@ -202,50 +178,69 @@ export function InterestChatDrawer({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {messages.map((msg) => {
-                const isMe = msg.sender_id === user?.id;
-                const initials = msg.sender_name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2);
+                const isMe = msg.is_mine;
+                const isDeleted = msg.deleted_at !== null;
+                const senderName = msg.sender?.username || msg.sender?.first_name || "User";
+                const initials = senderName.charAt(0).toUpperCase();
 
                 return (
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex gap-2",
+                      "flex gap-2 group",
                       isMe ? "flex-row-reverse" : "flex-row"
                     )}
                   >
                     {!isMe && (
                       <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarImage src={msg.sender_avatar || undefined} />
+                        <AvatarImage src={msg.sender?.avatar_url || undefined} />
                         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                       </Avatar>
                     )}
-                    <div
-                      className={cn(
-                        "max-w-[75%] rounded-lg px-3 py-2",
-                        isMe
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      )}
-                    >
-                      {!isMe && (
-                        <p className="text-xs font-medium mb-1">{msg.sender_name}</p>
-                      )}
-                      <p className="text-sm">{msg.message}</p>
-                      <p
+                    <div className="flex flex-col max-w-[75%]">
+                      <div
                         className={cn(
-                          "text-[10px] mt-1",
-                          isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                          "rounded-2xl px-3 py-2",
+                          isDeleted
+                            ? "bg-muted text-muted-foreground italic"
+                            : isMe
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
                         )}
                       >
-                        {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                      </p>
+                        {isDeleted ? (
+                          <p className="text-sm">Message deleted</p>
+                        ) : (
+                          <>
+                            {msg.image_url && (
+                              <img
+                                src={msg.image_url}
+                                alt="Shared image"
+                                className="rounded-lg max-w-full max-h-[200px] object-cover mb-1 cursor-pointer"
+                                onClick={() => window.open(msg.image_url!, "_blank")}
+                              />
+                            )}
+                            {msg.content && <p className="text-sm">{msg.content}</p>}
+                          </>
+                        )}
+                      </div>
+                      <div className={cn("flex items-center gap-1 mt-0.5 px-1", isMe && "flex-row-reverse")}>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                        </span>
+                        {isMe && !isDeleted && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 opacity-0 group-hover:opacity-100"
+                            onClick={() => deleteMessage(msg.id)}
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -254,21 +249,57 @@ export function InterestChatDrawer({
           )}
         </ScrollArea>
 
-        <div className="p-4 border-t">
+        <div className="p-3 border-t">
+          {/* Image preview */}
+          {imagePreview && (
+            <div className="mb-2 relative inline-block">
+              <img
+                src={imagePreview.preview}
+                alt="Preview"
+                className="h-16 w-16 object-cover rounded-lg"
+              />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
+                onClick={() => setImagePreview(null)}
+              >
+                ×
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              className="hidden"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="flex-shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isSending || isUploading}
+            >
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            </Button>
             <Input
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={sendMessage.isPending}
+              disabled={isSending || isUploading}
+              className="rounded-full"
             />
             <Button
               size="icon"
+              className="rounded-full flex-shrink-0"
               onClick={handleSend}
-              disabled={!newMessage.trim() || sendMessage.isPending}
+              disabled={(!newMessage.trim() && !imagePreview) || isSending || isUploading}
             >
-              {sendMessage.isPending ? (
+              {isSending || isUploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />

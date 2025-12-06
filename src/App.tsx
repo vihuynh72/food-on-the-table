@@ -15,6 +15,7 @@ import Donate from "./pages/Donate";
 import Auth from "./pages/Auth";
 import CompleteProfile from "./pages/CompleteProfile";
 import RecipeGenerator from "./pages/RecipeGenerator";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 import { ProfileGuard } from "@/components/ProfileGuard";
 
@@ -45,6 +46,7 @@ function AppContent() {
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/recipe-generator" element={<RecipeGenerator />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/messages" element={<Messages />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
