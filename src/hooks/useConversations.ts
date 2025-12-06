@@ -22,6 +22,7 @@ const db = supabase as any;
 // =====================================================
 export function useConversations() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const {
@@ -70,7 +71,10 @@ export function useConversations() {
       // Get other participants for each conversation
       const conversationIds = participantData.map((p: any) => p.conversation_id);
       
-      const { data: allParticipants, error: apError } = await db
+      // Try FK join first, fallback to separate queries
+      let allParticipants: any[] | null = null;
+      
+      const fkResult = await db
         .from("conversation_participants")
         .select(`
           conversation_id,
@@ -80,8 +84,41 @@ export function useConversations() {
         .in("conversation_id", conversationIds)
         .neq("user_id", user.id);
 
-      if (apError) {
-        console.error("Error fetching other participants:", apError);
+      if (!fkResult.error) {
+        allParticipants = fkResult.data;
+      } else {
+        console.log("Participants FK join failed, using fallback:", fkResult.error.message);
+        
+        // Fallback: fetch participants and profiles separately
+        const participantsResult = await db
+          .from("conversation_participants")
+          .select("conversation_id, user_id")
+          .in("conversation_id", conversationIds)
+          .neq("user_id", user.id);
+        
+        if (participantsResult.data) {
+          const otherUserIds = [...new Set(participantsResult.data.map((p: any) => p.user_id))];
+          
+          let profilesMap: Record<string, any> = {};
+          if (otherUserIds.length > 0) {
+            const profilesResult = await db
+              .from("profiles")
+              .select("user_id, username, first_name, avatar_url")
+              .in("user_id", otherUserIds);
+            
+            if (profilesResult.data) {
+              profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
+                acc[p.user_id] = p;
+                return acc;
+              }, {});
+            }
+          }
+          
+          allParticipants = participantsResult.data.map((p: any) => ({
+            ...p,
+            profile: profilesMap[p.user_id] || null,
+          }));
+        }
       }
 
       // Build conversation list with details
@@ -174,17 +211,34 @@ export function useConversations() {
       }
       
       // Soft delete: Set left_at on participant records for all selected conversations
-      const { error } = await db
-        .from("conversation_participants")
-        .update({ left_at: new Date().toISOString() })
-        .in("conversation_id", conversationIds)
-        .eq("user_id", user.id);
+      // We need to delete one by one to ensure both filters work correctly
+      const timestamp = new Date().toISOString();
+      const errors: Error[] = [];
       
-      if (error) throw error;
-      return { deleted: conversationIds.length };
+      for (const convId of conversationIds) {
+        const { error } = await db
+          .from("conversation_participants")
+          .update({ left_at: timestamp })
+          .eq("conversation_id", convId)
+          .eq("user_id", user.id);
+        
+        if (error) {
+          console.error(`Failed to delete conversation ${convId}:`, error);
+          errors.push(error);
+        }
+      }
+      
+      if (errors.length === conversationIds.length) {
+        throw new Error("Failed to delete any conversations");
+      }
+      
+      return { deleted: conversationIds.length - errors.length };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["conversations", user?.id] });
+    },
+    onError: (error) => {
+      console.error("Bulk delete error:", error);
     },
   });
 
@@ -220,7 +274,12 @@ export function useConversation(conversationId: string | null) {
     queryFn: async (): Promise<MessageWithSender[]> => {
       if (!conversationId || !user) return [];
 
-      const { data, error } = await db
+      // Try fetching with the profiles FK join first
+      let data: any[] | null = null;
+      let error: any = null;
+
+      // Approach 1: Use explicit FK to profiles (if migration has been applied)
+      const result1 = await db
         .from("messages")
         .select(`
           *,
@@ -230,12 +289,55 @@ export function useConversation(conversationId: string | null) {
         .order("created_at", { ascending: true })
         .limit(100);
 
-      if (error) {
-        console.error("Error fetching messages:", error);
-        throw new Error("Failed to load messages");
+      if (!result1.error) {
+        data = result1.data;
+      } else {
+        console.log("FK join failed, trying fallback approach:", result1.error.message);
+        
+        // Approach 2: Fetch messages without join, then fetch profiles separately
+        const messagesResult = await db
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: true })
+          .limit(100);
+
+        if (messagesResult.error) {
+          console.error("Error fetching messages:", messagesResult.error);
+          throw new Error("Failed to load messages");
+        }
+
+        // Get unique sender IDs
+        const senderIds = [...new Set((messagesResult.data || []).map((m: any) => m.sender_id))];
+        
+        // Fetch profiles for those senders
+        let profilesMap: Record<string, any> = {};
+        if (senderIds.length > 0) {
+          const profilesResult = await db
+            .from("profiles")
+            .select("user_id, username, first_name, avatar_url")
+            .in("user_id", senderIds);
+          
+          if (profilesResult.data) {
+            profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
+              acc[p.user_id] = p;
+              return acc;
+            }, {});
+          }
+        }
+
+        // Combine messages with profiles
+        data = (messagesResult.data || []).map((m: any) => ({
+          ...m,
+          sender: profilesMap[m.sender_id] || null,
+        }));
       }
 
-      return (data || []).map((m: any) => ({
+      if (!data) {
+        return [];
+      }
+
+      return data.map((m: any) => ({
         ...m,
         sender: m.sender
           ? {

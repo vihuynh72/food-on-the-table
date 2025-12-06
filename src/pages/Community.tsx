@@ -32,7 +32,7 @@ export default function Community() {
     'produce', 'bakery', 'pantry', 'dairy_eggs', 'meat_seafood', 'prepared_meals', 'frozen', 'beverages', 'other'
   ]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [distance, setDistance] = useState(5);
+  const [distance, setDistance] = useState(10);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<CommunityPostWithUser | null>(null);
   const [selectedPost, setSelectedPost] = useState<CommunityPostWithUser | null>(null);

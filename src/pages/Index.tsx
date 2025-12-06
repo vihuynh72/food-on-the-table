@@ -190,8 +190,8 @@ export default function Index() {
             </motion.div>
             
             <h1 className="font-bold text-foreground text-balance text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
-              Got Food?{" "}
-              <span className="text-primary">Decide Before It Spoils</span>
+              Got Food?{""}
+              <span className="text-primary"><br></br>Decide Before It Spoils</span>
             </h1>
             
             <p className="text-lg md:text-xl text-foreground/80 text-pretty max-w-2xl mx-auto leading-relaxed mb-8">
