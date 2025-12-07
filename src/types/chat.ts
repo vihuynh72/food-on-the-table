@@ -47,7 +47,7 @@ export interface ConversationParticipant {
 export interface Message {
   id: string;
   conversation_id: string;
-  sender_id: string;
+  sender_id: string | null; // null for system messages
   content: string | null;
   image_url: string | null;
   image_path: string | null;
@@ -56,6 +56,7 @@ export interface Message {
   deleted_by: string | null;
   created_at: string;
   edited_at: string | null;
+  message_type?: "user" | "system"; // system messages have no sender
 }
 
 /**
@@ -77,9 +78,17 @@ export interface ConversationWithDetails extends Conversation {
     id: string;
     title: string;
     status: string;
+    total_portions?: number;
+    remaining_portions?: number;
   } | null;
-  // Interest status
+  // Interest status and metadata
   interest_status?: string;
+  // Interest party IDs for determining user role
+  giver_id?: string;
+  seeker_id?: string;
+  // Dual confirmation flags
+  giver_confirmed?: boolean;
+  seeker_confirmed?: boolean;
 }
 
 /**

@@ -46,7 +46,9 @@ export function useConversations() {
               status,
               giver_id,
               seeker_id,
-              post:community_posts(id, title, status)
+              giver_confirmed,
+              seeker_confirmed,
+              post:community_posts(id, title, status, total_portions, remaining_portions)
             )
           )
         `)
@@ -142,6 +144,10 @@ export function useConversations() {
               },
           post: p.conversation?.interest?.post || null,
           interest_status: p.conversation?.interest?.status,
+          giver_id: p.conversation?.interest?.giver_id,
+          seeker_id: p.conversation?.interest?.seeker_id,
+          giver_confirmed: p.conversation?.interest?.giver_confirmed ?? false,
+          seeker_confirmed: p.conversation?.interest?.seeker_confirmed ?? false,
         } as ConversationWithDetails;
       });
     },
@@ -274,8 +280,12 @@ export function useConversation(conversationId: string | null) {
         throw new Error("Failed to load messages");
       }
 
-      // Get unique sender IDs
-      const senderIds = [...new Set((messagesResult.data || []).map((m: any) => m.sender_id))];
+      // Get unique sender IDs (filter out null for system messages)
+      const senderIds = [...new Set(
+        (messagesResult.data || [])
+          .map((m: any) => m.sender_id)
+          .filter((id: string | null) => id !== null)
+      )];
       
       // Fetch profiles for those senders
       let profilesMap: Record<string, any> = {};
@@ -335,7 +345,9 @@ export function useConversation(conversationId: string | null) {
             status,
             giver_id,
             seeker_id,
-            post:community_posts(id, title, status)
+            giver_confirmed,
+            seeker_confirmed,
+            post:community_posts(id, title, status, total_portions, remaining_portions)
           )
         `)
         .eq("id", conversationId)
@@ -380,6 +392,10 @@ export function useConversation(conversationId: string | null) {
           : { id: otherUserId, username: null, first_name: null, last_name: null, avatar_url: null },
         post: data.interest?.post || null,
         interest_status: data.interest?.status,
+        giver_id: data.interest?.giver_id,
+        seeker_id: data.interest?.seeker_id,
+        giver_confirmed: data.interest?.giver_confirmed ?? false,
+        seeker_confirmed: data.interest?.seeker_confirmed ?? false,
       };
     },
     enabled: !!conversationId && !!user,
@@ -406,6 +422,25 @@ export function useConversation(conversationId: string | null) {
         },
         async (payload) => {
           const newMessage = payload.new as any;
+          
+          // Handle system messages (sender_id is null)
+          if (!newMessage.sender_id || newMessage.message_type === 'system') {
+            queryClient.setQueryData(
+              ["messages", conversationId],
+              (old: MessageWithSender[] | undefined) => {
+                const newMsg = {
+                  ...newMessage,
+                  sender: null,
+                  is_mine: false,
+                };
+                if (!old) return [newMsg];
+                const exists = old.some((m) => m.id === newMessage.id);
+                if (exists) return old;
+                return [...old, newMsg];
+              }
+            );
+            return;
+          }
           
           // For my own messages: check if we have a temp version, replace it with real one
           if (newMessage.sender_id === user.id) {
@@ -490,11 +525,33 @@ export function useConversation(conversationId: string | null) {
       )
       .subscribe();
 
+    // Subscribe to interest status changes for this conversation
+    // Get the interest_id from the conversation to filter
+    const interestChannel = supabase
+      .channel(`interest_status_${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "community_interests",
+        },
+        (payload) => {
+          // Check if this interest is related to our conversation
+          // Invalidate conversation query to get fresh data
+          queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+          queryClient.invalidateQueries({ queryKey: ["conversations", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        }
+      )
+      .subscribe();
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      supabase.removeChannel(interestChannel);
     };
   }, [conversationId, user, queryClient]);
 

@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { format, isToday, isYesterday } from "date-fns";
-import { Check, CheckCheck, Trash2, Image as ImageIcon } from "lucide-react";
+import { Check, CheckCheck, Trash2, Image as ImageIcon, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageStatus } from "@/types/chat";
 import type { MessageWithSender } from "@/types/chat";
@@ -21,6 +21,20 @@ interface MessageBubbleProps {
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
   ({ message, showAvatar = true, onDelete }, ref) => {
+    // Check if this is a system message (no sender or message_type is 'system')
+    const isSystemMessage = !message.sender_id || message.message_type === 'system';
+
+    // Render system messages with centered, muted style
+    if (isSystemMessage) {
+      return (
+        <div ref={ref} className="flex justify-center my-3">
+          <div className="bg-muted/60 text-muted-foreground text-xs px-4 py-2 rounded-full max-w-[85%] text-center">
+            {message.content}
+          </div>
+        </div>
+      );
+    }
+
     const isMine = message.is_mine;
     const isDeleted = message.deleted_at !== null;
 

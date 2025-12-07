@@ -1,9 +1,11 @@
-import { useEffect, useRef, useLayoutEffect, useCallback } from "react";
+import { useEffect, useRef, useLayoutEffect, useCallback, useState } from "react";
 import { Loader2, MessageSquare } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatHeader } from "./ChatHeader";
+import { PickupConfirmationModal } from "@/components/community/PickupConfirmationModal";
 import type { ConversationWithDetails, MessageWithSender } from "@/types/chat";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChatViewProps {
   conversation: ConversationWithDetails | null;
@@ -38,9 +40,25 @@ export function ChatView({
   onImageUpload,
   showBackButton = true,
 }: ChatViewProps) {
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ChatInputHandle>(null);
+  const [pickupModalOpen, setPickupModalOpen] = useState(false);
+
+  // Determine user's role for pickup confirmation
+  const isGiver = user?.id === conversation?.giver_id;
+  const role = isGiver ? "giver" : "seeker";
+  const myConfirmed = isGiver ? conversation?.giver_confirmed : conversation?.seeker_confirmed;
+
+  // Build other user display name
+  const otherUser = conversation?.other_user;
+  let otherDisplayName = "the other party";
+  if (otherUser?.username) {
+    otherDisplayName = otherUser.username;
+  } else if (otherUser?.first_name) {
+    otherDisplayName = otherUser.first_name;
+  }
 
   // Scroll to bottom function
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -99,6 +117,7 @@ export function ChatView({
         onToggleMute={onToggleMute}
         onViewPost={onViewPost}
         onDelete={onDeleteConversation}
+        onOpenPickupModal={() => setPickupModalOpen(true)}
         isDeleting={isDeletingConversation}
         showBackButton={showBackButton}
       />
@@ -156,6 +175,19 @@ export function ChatView({
           }
         />
       </div>
+
+      {/* Pickup Confirmation Modal */}
+      {conversation?.interest_id && (
+        <PickupConfirmationModal
+          open={pickupModalOpen}
+          onOpenChange={setPickupModalOpen}
+          interestId={conversation.interest_id}
+          postTitle={conversation.post?.title || "Food Item"}
+          role={role}
+          otherPartyName={otherDisplayName}
+          alreadyConfirmed={myConfirmed}
+        />
+      )}
     </div>
   );
 }
