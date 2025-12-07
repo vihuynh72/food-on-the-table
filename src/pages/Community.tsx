@@ -133,12 +133,12 @@ export default function Community() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
       
-      <main className="flex-1 container mx-auto px-4 py-6 flex flex-col gap-6">
+      <main className="flex-1 container mx-auto px-4 py-3 flex flex-col gap-4">
         {/* Top Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Community</h1>
-            <p className="text-muted-foreground">Share and discover food locally.</p>
+            <h1 className="text-2xl font-bold tracking-tight">Community</h1>
+            <p className="text-muted-foreground text-sm">Share and discover food locally.</p>
           </div>
           
           <div className="flex items-center gap-2 w-full md:w-auto">
@@ -161,7 +161,7 @@ export default function Community() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col h-full">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-2">
             <TabsList>
               <TabsTrigger value="nearby">Nearby</TabsTrigger>
               <TabsTrigger value="my_posts" disabled={!user}>My Posts</TabsTrigger>
@@ -169,7 +169,7 @@ export default function Community() {
             </TabsList>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_300px] gap-6 items-start h-[calc(100vh-220px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_300px] gap-4 items-start h-[calc(100vh-180px)]">
             {/* Left: Filters */}
             <CommunityFilters
               selectedCategories={selectedCategories}
@@ -181,7 +181,7 @@ export default function Community() {
             />
 
             {/* Center: Carousel Feed */}
-            <div className="h-full w-full overflow-hidden rounded-xl bg-muted/10 border">
+            <div className="h-full w-full rounded-xl bg-muted/10 border overflow-visible flex items-center justify-center">
               <CommunityCarousel 
                 posts={posts} 
                 onInterest={handleInterest} 

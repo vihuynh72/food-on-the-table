@@ -59,15 +59,17 @@ export function CommunityCarousel({ posts, onInterest, onSlideChange }: Communit
   });
 
   return (
-    <div className="relative overflow-hidden w-full h-full py-10">
-      <Carousel 
-        slides={slides} 
-        onSlideChange={(index) => {
-          if (onSlideChange && posts[index]) {
-            onSlideChange(posts[index]);
-          }
-        }}
-      />
+    <div className="relative w-full h-full py-4 px-14 overflow-visible">
+      <div className="relative overflow-hidden w-full h-full">
+        <Carousel 
+          slides={slides} 
+          onSlideChange={(index) => {
+            if (onSlideChange && posts[index]) {
+              onSlideChange(posts[index]);
+            }
+          }}
+        />
+      </div>
     </div>
   );
 }
