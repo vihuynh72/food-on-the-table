@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Pages that require authentication
-const PROTECTED_ROUTES = ["/settings", "/my-food", "/complete-profile"];
+const PROTECTED_ROUTES = ["/settings", "/complete-profile"];
 // Pages that should NOT be accessible when logged in
 const AUTH_ONLY_ROUTES = ["/auth"];
 // Public routes that anyone can access
-const PUBLIC_ROUTES = ["/", "/community", "/impact", "/learn", "/donate"];
+const PUBLIC_ROUTES = ["/", "/community", "/impact", "/learn", "/donate", "/my-food"];
 
 export function ProfileGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, isLoading, isProfileLoading } = useAuth();

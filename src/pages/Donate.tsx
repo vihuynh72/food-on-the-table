@@ -332,8 +332,6 @@ export default function Donate() {
                   step={1}
                   onValueChange={handleDistanceSliderChange}
                   aria-label="Search radius in miles"
-                  showTooltip
-                  tooltipContent={(value) => `${value} mi`}
                 />
                 <div className="flex items-center gap-2">
                   <Input
