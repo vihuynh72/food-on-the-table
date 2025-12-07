@@ -231,7 +231,7 @@ export default function Settings() {
                         const meta = NOTIFICATION_TYPE_META[type];
                         const Icon = notificationIcons[type] || Bell;
                         const preferenceKey = type as keyof typeof preferences;
-                        const isEnabled = preferences?.[preferenceKey] ?? true;
+                        const isEnabled = preferences?.[preferenceKey] === true;
 
                         return (
                           <div
