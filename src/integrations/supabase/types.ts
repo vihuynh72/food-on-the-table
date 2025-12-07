@@ -251,6 +251,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "community_posts_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       community_reports: {
@@ -365,6 +372,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["user_id"]
           },
         ]
@@ -980,6 +994,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "messages_sender_id_profiles_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       notification_preferences: {
@@ -1157,6 +1178,30 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          first_name: string | null
+          leaderboard_visible: boolean | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          first_name?: string | null
+          leaderboard_visible?: boolean | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          first_name?: string | null
+          leaderboard_visible?: boolean | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_interest: {
@@ -1229,6 +1274,26 @@ export type Database = {
       get_or_create_conversation: {
         Args: { p_interest_id: string }
         Returns: string
+      }
+      get_public_profile: {
+        Args: { p_user_id: string }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          leaderboard_visible: boolean
+          user_id: string
+          username: string
+        }[]
+      }
+      get_public_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          leaderboard_visible: boolean
+          user_id: string
+          username: string
+        }[]
       }
       get_total_unread_messages: { Args: never; Returns: number }
       get_unread_notification_count: { Args: never; Returns: number }
