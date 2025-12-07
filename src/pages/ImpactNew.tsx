@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Navigation } from "@/components/Navigation";
 import { useImpact } from "@/hooks/useImpact";
-import { useLeaderboard, LeaderboardEntry } from "@/hooks/useLeaderboard";
+import { useLeaderboard, LeaderboardEntry, getDisplayName, getInitials } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -759,8 +759,9 @@ function LeaderboardRow({
     return <span className="w-4 text-center text-xs text-muted-foreground">#{rank}</span>;
   };
 
-  const displayName = entry.username || entry.first_name || "Anonymous";
-  const initials = displayName.charAt(0).toUpperCase();
+  // Use helper functions from useLeaderboard for consistent display name logic
+  const displayName = getDisplayName(entry);
+  const initials = getInitials(displayName);
 
   return (
     <div className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${

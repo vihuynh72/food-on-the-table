@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="512"
+  height="512"
+  viewBox="0 0 512 512"
+>
+  <!-- Rounded background card -->
+  <rect
+    x="24"
+    y="24"
+    width="464"
+    height="464"
+    rx="120"
+    ry="120"
+    fill="#e9dfb4"
+  />
+  
+  <!-- Table top band -->
+  <rect
+    x="24"
+    y="312"
+    width="464"
+    height="176"
+    fill="#efbfb3"
+  />
+  <!-- Subtle table edge highlight -->
+  <rect
+    x="24"
+    y="304"
+    width="464"
+    height="16"
+    fill="#e4b0a5"
+    opacity="0.8"
+  />
+  
+  <!-- Plate shadow -->
+  <ellipse
+    cx="256"
+    cy="270"
+    rx="150"
+    ry="46"
+    fill="#d7cda2"
+    opacity="0.7"
+  />
+
+  <!-- Plate -->
+  <circle
+    cx="256"
+    cy="230"
+    r="150"
+    fill="#fdfaf0"
+  />
+  <circle
+    cx="256"
+    cy="230"
+    r="112"
+    fill="#b7c88d"
+  />
+
+  <!-- Simple "smile" curve to suggest a shared meal -->
+  <path
+    d="M196 244
+       Q 256 284 316 244"
+    fill="none"
+    stroke="#fdfaf0"
+    stroke-width="18"
+    stroke-linecap="round"
+  />
+
+  <!-- Sprouting leaf (fresh food / sustainability) -->
+  <!-- Stem -->
+  <path
+    d="M256 248
+       C 252 228 250 210 250 192
+         250 178 252 168 256 160
+         260 168 262 178 262 192
+         262 210 260 228 256 248 Z"
+    fill="#44562f"
+  />
+
+  <!-- Left leaf -->
+  <path
+    d="M250 186
+       C 230 174 214 156 208 137
+         224 136 242 142 256 155
+         252 166 250 176 250 186 Z"
+    fill="#83934d"
+  />
+
+  <!-- Right leaf -->
+  <path
+    d="M262 186
+       C 276 176 288 162 296 147
+         304 132 310 118 314 104
+         294 108 276 118 264 132
+         260 140 260 150 262 186 Z"
+    fill="#44562f"
+  />
+
+  <!-- Tiny border around plate to help at small sizes -->
+  <circle
+    cx="256"
+    cy="230"
+    r="150"
+    fill="none"
+    stroke="#d2c79a"
+    stroke-width="10"
+  />
+</svg>

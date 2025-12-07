@@ -16,6 +16,7 @@ import confetti from "canvas-confetti";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFoodInventory } from "@/hooks/useFoodInventory";
 import { HomeImpactSection } from "@/components/home/HomeImpactSection";
+import { getFoodIcon, getFoodColor } from "@/lib/utils";
 
 const mockGalleryItems: GalleryItem[] = [
   {
@@ -101,36 +102,12 @@ export default function Index() {
       return [];
     }
 
-    // Map real items to GalleryItem
+    // Map real items to GalleryItem using the shared getFoodIcon utility
     return expiringItems.slice(0, 6).map((item) => {
-      const nameLower = item.name.toLowerCase();
-      let icon = <span className="text-[120px]">📦</span>;
-      let color = "bg-[#44562f]"; // Woodland
-
-      // Try to find icon in knowledge base first
-      // We need to import foodKnowledgeBase, but for now let's use the existing logic + improvements
-      if (nameLower.includes("milk") || item.category?.toLowerCase().includes("dairy")) {
-        icon = <span className="text-[120px]">🥛</span>;
-        color = "bg-[#44562f]"; // Woodland
-      } else if (nameLower.includes("fruit") || nameLower.includes("apple") || nameLower.includes("banana")) {
-        icon = <span className="text-[120px]">🍎</span>;
-        color = "bg-[#efbfb3]"; // Desert Sand
-      } else if (nameLower.includes("vegetable") || nameLower.includes("carrot") || nameLower.includes("spinach")) {
-        icon = <span className="text-[120px]">🥕</span>;
-        color = "bg-[#83934d]"; // Asparagus
-      } else if (nameLower.includes("bread") || nameLower.includes("bakery")) {
-        icon = <span className="text-[120px]">🍞</span>;
-        color = "bg-[#e9dfb4]"; // Raffia
-      } else if (nameLower.includes("meat") || nameLower.includes("chicken") || nameLower.includes("beef")) {
-        icon = <span className="text-[120px]">🥩</span>;
-        color = "bg-[#b7c88d]"; // Pine Glade
-      } else if (nameLower.includes("egg")) {
-        icon = <span className="text-[120px]">🥚</span>;
-        color = "bg-[#e9dfb4]"; // Raffia
-      } else if (nameLower.includes("fish") || nameLower.includes("seafood")) {
-        icon = <span className="text-[120px]">🐟</span>;
-        color = "bg-[#44562f]"; // Woodland
-      }
+      // Use the centralized getFoodIcon utility for accurate icon mapping
+      const foodIcon = getFoodIcon(item.name, item.category);
+      const icon = <span className="text-[120px]">{foodIcon}</span>;
+      const color = getFoodColor(item.category);
 
       const daysLeft = Math.ceil((new Date(item.expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       const binomial = daysLeft < 0 ? "Expired" : daysLeft === 0 ? "Use today" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
@@ -190,8 +167,8 @@ export default function Index() {
             </motion.div>
             
             <h1 className="font-bold text-foreground text-balance text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
-              Got Food?{" "}
-              <span className="text-primary">Decide Before It Spoils</span>
+              Got Food?{""}
+              <span className="text-primary"><br></br>Decide Before It Spoils</span>
             </h1>
             
             <p className="text-lg md:text-xl text-foreground/80 text-pretty max-w-2xl mx-auto leading-relaxed mb-8">

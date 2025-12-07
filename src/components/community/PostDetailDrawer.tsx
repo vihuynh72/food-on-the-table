@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CommunityPostWithUser } from "@/types/community";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,10 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, format } from "date-fns";
-import { MapPin, Clock, Heart, Bookmark, Flag, Send, Loader2, Pencil, Trash2, Users } from "lucide-react";
+import { MapPin, Clock, Heart, Bookmark, BookmarkCheck, Flag, Send, Loader2, Pencil, Trash2, Users } from "lucide-react";
 import { formatCategory } from "@/lib/utils";
 import { useInterestManagement } from "@/hooks/useInterestManagement";
 import { InterestManagementPanel } from "./InterestManagementPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PostDetailDrawerProps {
   post: CommunityPostWithUser | null;
@@ -33,10 +34,13 @@ interface PostDetailDrawerProps {
 export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }: PostDetailDrawerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [interestMessage, setInterestMessage] = useState("Hi! I'd love to pick this up.");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInterestForm, setShowInterestForm] = useState(false);
   const [showInterestManagement, setShowInterestManagement] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Interest management for post owners
   const { receivedInterests, acceptInterest, declineInterest } = useInterestManagement();
@@ -49,6 +53,64 @@ export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }:
   }, [receivedInterests, post?.id]);
   
   const pendingCount = postInterests.filter(i => i.status === 'pending').length;
+
+  // Check if post is saved when drawer opens
+  useEffect(() => {
+    async function checkIfSaved() {
+      if (!user || !post) return;
+      
+      const { data } = await supabase
+        .from('community_saves')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setIsSaved(!!data);
+    }
+    
+    if (open && post && user) {
+      checkIfSaved();
+    }
+  }, [open, post?.id, user?.id]);
+
+  const handleSave = async () => {
+    if (!user || !post) {
+      toast({ title: "Please sign in", description: "You need to be signed in to save posts.", variant: "destructive" });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        // Unsave
+        const { error } = await supabase
+          .from('community_saves')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        setIsSaved(false);
+        toast({ title: "Removed from saved" });
+      } else {
+        // Save
+        const { error } = await supabase
+          .from('community_saves')
+          .insert({ post_id: post.id, user_id: user.id });
+        
+        if (error) throw error;
+        setIsSaved(true);
+        toast({ title: "Saved!" });
+      }
+      // Invalidate saved posts query
+      queryClient.invalidateQueries({ queryKey: ['community_posts'] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!post) return null;
 
@@ -264,9 +326,19 @@ export function PostDetailDrawer({ post, open, onOpenChange, onEdit, onDelete }:
                     <Heart className="w-4 h-4 mr-2" />
                     Like
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
-                    <Bookmark className="w-4 h-4 mr-2" />
-                    Save
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={isSaved ? "text-primary" : "text-muted-foreground"}
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaved ? (
+                      <BookmarkCheck className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Bookmark className="w-4 h-4 mr-2" />
+                    )}
+                    {isSaved ? "Saved" : "Save"}
                   </Button>
                   <Button variant="ghost" size="sm" className="text-muted-foreground">
                     <Flag className="w-4 h-4 mr-2" />

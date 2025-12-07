@@ -25,9 +25,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { FoodItem } from "@/hooks/useFoodInventory";
-import { foodKnowledgeBase } from "@/data/foodKnowledgeBase";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { cn, getFoodIcon } from "@/lib/utils";
 
 interface FoodItemCardProps {
   item: FoodItem & { daysLeft: number };
@@ -81,24 +80,8 @@ export function FoodItemCard({
   };
 
   const getIcon = () => {
-    const kbItem = foodKnowledgeBase.find(k => k.name.toLowerCase() === item.name.toLowerCase());
-    if (kbItem?.icon) return kbItem.icon;
-
-    switch (item.category?.toLowerCase()) {
-      case "fruit": return "🍎";
-      case "vegetable": return "🥕";
-      case "dairy": return "🥛";
-      case "eggs": return "🥚";
-      case "meat": return "🥩";
-      case "seafood": return "🐟";
-      case "bakery": return "🍞";
-      case "grains": return "🌾";
-      case "frozen": return "❄️";
-      case "canned": return "🥫";
-      case "beverages": return "🥤";
-      case "snacks": return "🍿";
-      default: return "📦";
-    }
+    // Use the centralized getFoodIcon utility for accurate icon mapping
+    return getFoodIcon(item.name, item.category);
   };
 
   const daysDisplay = getDaysDisplay(item.daysLeft);

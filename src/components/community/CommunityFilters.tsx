@@ -82,6 +82,7 @@ export function CommunityFilters({
           <Slider
             value={[distance]}
             onValueChange={(value) => onDistanceChange(value[0])}
+            min={0}
             max={50}
             step={1}
             className="w-full"

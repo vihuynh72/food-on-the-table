@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Home, Package, Users, Trophy, BookOpen, Settings, LogOut, LogIn, User, Bell } from "lucide-react";
+import { Menu, Home, Package, Users, Trophy, BookOpen, Settings, LogOut, LogIn, User, Bell, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useConversations } from "@/hooks/useConversations";
 import { NotificationsDrawer } from "@/components/NotificationsDrawer";
 
 const navItems = [
@@ -33,6 +34,7 @@ export function Navigation() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const { unreadCount } = useNotifications();
+  const { totalUnread: unreadMessages } = useConversations();
 
   const handleSignOut = async () => {
     await signOut();
@@ -56,19 +58,36 @@ export function Navigation() {
         {/* Auth button floating on the right */}
         <div className="fixed top-6 right-6 z-50 flex items-center gap-2">
           {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-10 w-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/50"
-              onClick={() => setNotificationsOpen(true)}
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Button>
+            <>
+              {/* Messages button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-10 w-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/50"
+                onClick={() => navigate("/messages")}
+              >
+                <MessageSquare className="h-5 w-5" />
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </Button>
+              {/* Notifications button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-10 w-10 rounded-full bg-background/80 backdrop-blur-lg border border-border/50"
+                onClick={() => setNotificationsOpen(true)}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </>
           )}
           {user ? (
             <DropdownMenu>

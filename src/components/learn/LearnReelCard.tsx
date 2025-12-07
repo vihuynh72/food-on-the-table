@@ -360,8 +360,8 @@ export function LearnReelCard({
         </motion.div>
       )}
 
-      {/* Action buttons - right side */}
-      <div className="absolute right-4 bottom-1/3 z-30 flex flex-col gap-3">
+      {/* Action buttons - right side, positioned lower */}
+      <div className="absolute right-4 bottom-[22%] z-30 flex flex-col gap-3">
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

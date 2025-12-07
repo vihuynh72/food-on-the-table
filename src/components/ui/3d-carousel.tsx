@@ -301,7 +301,7 @@ export function Carousel({ slides, onSlideChange }: CarouselProps) {
         ))}
       </ul>
 
-      <div className="absolute top-1/2 -translate-y-1/2 left-2 md:-left-20 z-50">
+      <div className="absolute top-1/2 -translate-y-1/2 -left-12 z-50">
         <CarouselControl
           type="previous"
           title="Go to previous slide"
@@ -309,7 +309,7 @@ export function Carousel({ slides, onSlideChange }: CarouselProps) {
         />
       </div>
 
-      <div className="absolute top-1/2 -translate-y-1/2 right-2 md:-right-20 z-50">
+      <div className="absolute top-1/2 -translate-y-1/2 -right-12 z-50">
         <CarouselControl
           type="next"
           title="Go to next slide"
