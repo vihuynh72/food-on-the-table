@@ -35,7 +35,7 @@ export function useConversations() {
     queryFn: async (): Promise<ConversationWithDetails[]> => {
       if (!user) return [];
 
-      // Get conversations with participant info
+      // Get conversations with participant info AND interest details (giver_id, seeker_id)
       const { data: participantData, error: pError } = await db
         .from("conversation_participants")
         .select(`
@@ -44,13 +44,14 @@ export function useConversations() {
             *,
             interest:community_interests(
               status,
+              giver_id,
+              seeker_id,
               post:community_posts(id, title, status)
             )
           )
         `)
         .eq("user_id", user.id)
         .is("left_at", null);
-        // .order("conversation(last_message_at)", { ascending: false, nullsFirst: false });
 
       if (pError) {
         console.error("Error fetching conversations:", pError);
@@ -68,64 +69,49 @@ export function useConversations() {
         return dateB - dateA;
       });
 
-      // Get other participants for each conversation
-      const conversationIds = participantData.map((p: any) => p.conversation_id);
+      // Get other user IDs from the interest relationship (source of truth)
+      // The "other user" is: if current user is giver, then seeker; otherwise giver
+      const otherUserIds: string[] = [];
+      const conversationToOtherUser: Record<string, string> = {};
       
-      // Try FK join first, fallback to separate queries
-      let allParticipants: any[] | null = null;
-      
-      const fkResult = await db
-        .from("conversation_participants")
-        .select(`
-          conversation_id,
-          user_id,
-          profile:profiles!conversation_participants_user_id_profiles_fkey(user_id, username, first_name, avatar_url)
-        `)
-        .in("conversation_id", conversationIds)
-        .neq("user_id", user.id);
-
-      if (!fkResult.error) {
-        allParticipants = fkResult.data;
-      } else {
-        console.log("Participants FK join failed, using fallback:", fkResult.error.message);
-        
-        // Fallback: fetch participants and profiles separately
-        const participantsResult = await db
-          .from("conversation_participants")
-          .select("conversation_id, user_id")
-          .in("conversation_id", conversationIds)
-          .neq("user_id", user.id);
-        
-        if (participantsResult.data) {
-          const otherUserIds = [...new Set(participantsResult.data.map((p: any) => p.user_id))];
-          
-          let profilesMap: Record<string, any> = {};
-          if (otherUserIds.length > 0) {
-            const profilesResult = await db
-              .from("profiles")
-              .select("user_id, username, first_name, avatar_url")
-              .in("user_id", otherUserIds);
-            
-            if (profilesResult.data) {
-              profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
-                acc[p.user_id] = p;
-                return acc;
-              }, {});
-            }
+      for (const p of participantData) {
+        const interest = p.conversation?.interest;
+        if (interest) {
+          const otherUserId = interest.giver_id === user.id 
+            ? interest.seeker_id 
+            : interest.giver_id;
+          if (otherUserId) {
+            otherUserIds.push(otherUserId);
+            conversationToOtherUser[p.conversation_id] = otherUserId;
           }
-          
-          allParticipants = participantsResult.data.map((p: any) => ({
-            ...p,
-            profile: profilesMap[p.user_id] || null,
-          }));
+        }
+      }
+      
+      // Fetch profiles for all other users
+      let profilesMap: Record<string, any> = {};
+      const uniqueOtherUserIds = [...new Set(otherUserIds)];
+      
+      if (uniqueOtherUserIds.length > 0) {
+        const profilesResult = await db
+          .from("profiles")
+          .select("user_id, username, first_name, last_name, avatar_url")
+          .in("user_id", uniqueOtherUserIds);
+        
+        if (profilesResult.error) {
+          console.error("Error fetching profiles:", profilesResult.error);
+        } else if (profilesResult.data) {
+          console.log("Fetched profiles from interests:", profilesResult.data.length, "profiles for", uniqueOtherUserIds.length, "users");
+          profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
+            acc[p.user_id] = p;
+            return acc;
+          }, {});
         }
       }
 
       // Build conversation list with details
       return participantData.map((p: any) => {
-        const otherParticipant = allParticipants?.find(
-          (ap: any) => ap.conversation_id === p.conversation_id
-        );
+        const otherUserId = conversationToOtherUser[p.conversation_id];
+        const otherProfile = otherUserId ? profilesMap[otherUserId] : null;
 
         return {
           ...p.conversation,
@@ -139,17 +125,19 @@ export function useConversations() {
             joined_at: p.joined_at,
             left_at: p.left_at,
           },
-          other_user: otherParticipant?.profile
+          other_user: otherProfile
             ? {
-                id: otherParticipant.profile.user_id,
-                username: otherParticipant.profile.username,
-                first_name: otherParticipant.profile.first_name,
-                avatar_url: otherParticipant.profile.avatar_url,
+                id: otherProfile.user_id,
+                username: otherProfile.username,
+                first_name: otherProfile.first_name,
+                last_name: otherProfile.last_name,
+                avatar_url: otherProfile.avatar_url,
               }
             : {
-                id: otherParticipant?.user_id || "",
+                id: otherUserId || "",
                 username: null,
                 first_name: null,
+                last_name: null,
                 avatar_url: null,
               },
           post: p.conversation?.interest?.post || null,
@@ -260,7 +248,6 @@ export function useConversation(conversationId: string | null) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Fetch messages
@@ -274,68 +261,46 @@ export function useConversation(conversationId: string | null) {
     queryFn: async (): Promise<MessageWithSender[]> => {
       if (!conversationId || !user) return [];
 
-      // Try fetching with the profiles FK join first
-      let data: any[] | null = null;
-      let error: any = null;
-
-      // Approach 1: Use explicit FK to profiles (if migration has been applied)
-      const result1 = await db
+      // Fetch messages without join for reliability
+      const messagesResult = await db
         .from("messages")
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_profiles_fkey(user_id, username, first_name, avatar_url)
-        `)
+        .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(100);
 
-      if (!result1.error) {
-        data = result1.data;
-      } else {
-        console.log("FK join failed, trying fallback approach:", result1.error.message);
-        
-        // Approach 2: Fetch messages without join, then fetch profiles separately
-        const messagesResult = await db
-          .from("messages")
-          .select("*")
-          .eq("conversation_id", conversationId)
-          .order("created_at", { ascending: true })
-          .limit(100);
-
-        if (messagesResult.error) {
-          console.error("Error fetching messages:", messagesResult.error);
-          throw new Error("Failed to load messages");
-        }
-
-        // Get unique sender IDs
-        const senderIds = [...new Set((messagesResult.data || []).map((m: any) => m.sender_id))];
-        
-        // Fetch profiles for those senders
-        let profilesMap: Record<string, any> = {};
-        if (senderIds.length > 0) {
-          const profilesResult = await db
-            .from("profiles")
-            .select("user_id, username, first_name, avatar_url")
-            .in("user_id", senderIds);
-          
-          if (profilesResult.data) {
-            profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
-              acc[p.user_id] = p;
-              return acc;
-            }, {});
-          }
-        }
-
-        // Combine messages with profiles
-        data = (messagesResult.data || []).map((m: any) => ({
-          ...m,
-          sender: profilesMap[m.sender_id] || null,
-        }));
+      if (messagesResult.error) {
+        console.error("Error fetching messages:", messagesResult.error);
+        throw new Error("Failed to load messages");
       }
 
-      if (!data) {
-        return [];
+      // Get unique sender IDs
+      const senderIds = [...new Set((messagesResult.data || []).map((m: any) => m.sender_id))];
+      
+      // Fetch profiles for those senders
+      let profilesMap: Record<string, any> = {};
+      if (senderIds.length > 0) {
+        const profilesResult = await db
+          .from("profiles")
+          .select("user_id, username, first_name, last_name, avatar_url")
+          .in("user_id", senderIds);
+        
+        if (profilesResult.error) {
+          console.error("Error fetching sender profiles:", profilesResult.error);
+        } else if (profilesResult.data) {
+          console.log("Fetched sender profiles:", profilesResult.data.length, "profiles for", senderIds.length, "senders");
+          profilesMap = profilesResult.data.reduce((acc: any, p: any) => {
+            acc[p.user_id] = p;
+            return acc;
+          }, {});
+        }
       }
+
+      // Combine messages with profiles
+      const data = (messagesResult.data || []).map((m: any) => ({
+        ...m,
+        sender: profilesMap[m.sender_id] || null,
+      }));
 
       return data.map((m: any) => ({
         ...m,
@@ -353,15 +318,8 @@ export function useConversation(conversationId: string | null) {
     enabled: !!conversationId && !!user,
   });
 
-  // Combine real messages with optimistic ones
-  const messages = [
-    ...(messagesData || []),
-    ...optimisticMessages.map((m) => ({
-      ...m,
-      sender: null,
-      is_mine: true,
-    })),
-  ];
+  // Just use the query data directly - we add to it optimistically in sendMessage
+  const messages = messagesData || [];
 
   // Fetch conversation details
   const { data: conversation } = useQuery({
@@ -404,7 +362,7 @@ export function useConversation(conversationId: string | null) {
 
       const { data: otherProfile } = await db
         .from("profiles")
-        .select("user_id, username, first_name, avatar_url")
+        .select("user_id, username, first_name, last_name, avatar_url")
         .eq("user_id", otherUserId)
         .single();
 
@@ -416,9 +374,10 @@ export function useConversation(conversationId: string | null) {
               id: otherProfile.user_id,
               username: otherProfile.username,
               first_name: otherProfile.first_name,
+              last_name: otherProfile.last_name,
               avatar_url: otherProfile.avatar_url,
             }
-          : { id: otherUserId, username: null, first_name: null, avatar_url: null },
+          : { id: otherUserId, username: null, first_name: null, last_name: null, avatar_url: null },
         post: data.interest?.post || null,
         interest_status: data.interest?.status,
       };
@@ -445,13 +404,64 @@ export function useConversation(conversationId: string | null) {
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
-          // Remove optimistic message if it matches
-          setOptimisticMessages((prev) =>
-            prev.filter((m) => m.content !== payload.new.content)
-          );
-          // Refetch to get full message with sender
-          queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        async (payload) => {
+          const newMessage = payload.new as any;
+          
+          // For my own messages: check if we have a temp version, replace it with real one
+          if (newMessage.sender_id === user.id) {
+            queryClient.setQueryData(
+              ["messages", conversationId],
+              (old: MessageWithSender[] | undefined) => {
+                if (!old) return [{ ...newMessage, sender: null, is_mine: true }];
+                
+                // Check if real message already exists
+                const realExists = old.some((m) => m.id === newMessage.id);
+                if (realExists) return old;
+                
+                // Find and replace any temp message with matching content
+                const tempIndex = old.findIndex(
+                  (m) => m.id.startsWith('temp_') && m.content === newMessage.content
+                );
+                
+                if (tempIndex !== -1) {
+                  // Replace temp message with real one
+                  const updated = [...old];
+                  updated[tempIndex] = { ...newMessage, sender: null, is_mine: true };
+                  return updated;
+                }
+                
+                // No temp found, just add (might be from another device)
+                return [...old, { ...newMessage, sender: null, is_mine: true }];
+              }
+            );
+          } else {
+            // Message from other user - fetch profile and add
+            const { data: senderProfile } = await db
+              .from("profiles")
+              .select("user_id, username, first_name, avatar_url")
+              .eq("user_id", newMessage.sender_id)
+              .single();
+            
+            queryClient.setQueryData(
+              ["messages", conversationId],
+              (old: MessageWithSender[] | undefined) => {
+                const newMsg = {
+                  ...newMessage,
+                  sender: senderProfile ? {
+                    id: senderProfile.user_id,
+                    username: senderProfile.username,
+                    first_name: senderProfile.first_name,
+                    avatar_url: senderProfile.avatar_url,
+                  } : null,
+                  is_mine: false,
+                };
+                if (!old) return [newMsg];
+                const exists = old.some((m) => m.id === newMessage.id);
+                if (exists) return old;
+                return [...old, newMsg];
+              }
+            );
+          }
         }
       )
       .on(
@@ -462,8 +472,20 @@ export function useConversation(conversationId: string | null) {
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+        (payload) => {
+          // Update the specific message in cache
+          const updatedMessage = payload.new as any;
+          queryClient.setQueryData(
+            ["messages", conversationId],
+            (old: MessageWithSender[] | undefined) => {
+              if (!old) return old;
+              return old.map((m) =>
+                m.id === updatedMessage.id
+                  ? { ...m, ...updatedMessage }
+                  : m
+              );
+            }
+          );
         }
       )
       .subscribe();
@@ -500,7 +522,7 @@ export function useConversation(conversationId: string | null) {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (input: SendMessageInput) => {
+    mutationFn: async (input: SendMessageInput & { tempId: string }) => {
       const { data, error } = await db.rpc("send_message", {
         p_conversation_id: input.conversation_id,
         p_content: input.content || null,
@@ -511,35 +533,23 @@ export function useConversation(conversationId: string | null) {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to send message");
 
-      return data;
+      return { ...data, tempId: input.tempId };
     },
-    onMutate: async (input) => {
-      // Add optimistic message
-      const optimistic: OptimisticMessage = {
-        id: `optimistic_${Date.now()}`,
-        conversation_id: input.conversation_id,
-        sender_id: user!.id,
-        content: input.content || null,
-        image_url: input.image_url || null,
-        image_path: input.image_path || null,
-        status: MessageStatus.SENDING,
-        deleted_at: null,
-        deleted_by: null,
-        created_at: new Date().toISOString(),
-        edited_at: null,
-        optimistic: true,
-      };
-      setOptimisticMessages((prev) => [...prev, optimistic]);
-    },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error("Error sending message:", error);
+      // Remove the failed message from cache
+      queryClient.setQueryData(
+        ["messages", conversationId],
+        (old: MessageWithSender[] | undefined) => {
+          if (!old) return old;
+          return old.filter((m) => m.id !== variables.tempId);
+        }
+      );
       toast({
         title: "Failed to send",
         description: "Your message couldn't be sent. Please try again.",
         variant: "destructive",
       });
-      // Remove failed optimistic message
-      setOptimisticMessages([]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations", user?.id] });
@@ -548,17 +558,48 @@ export function useConversation(conversationId: string | null) {
 
   const sendMessage = useCallback(
     (content?: string, imageUrl?: string, imagePath?: string) => {
-      if (!conversationId) return;
+      if (!conversationId || !user) return;
       if (!content?.trim() && !imageUrl) return;
 
+      // Create a temp ID for this message
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Add message to cache immediately (optimistic)
+      const optimisticMessage: MessageWithSender = {
+        id: tempId,
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: content?.trim() || null,
+        image_url: imageUrl || null,
+        image_path: imagePath || null,
+        status: MessageStatus.SENT,
+        deleted_at: null,
+        deleted_by: null,
+        created_at: new Date().toISOString(),
+        edited_at: null,
+        sender: null,
+        is_mine: true,
+      };
+
+      // Add directly to query cache
+      queryClient.setQueryData(
+        ["messages", conversationId],
+        (old: MessageWithSender[] | undefined) => {
+          if (!old) return [optimisticMessage];
+          return [...old, optimisticMessage];
+        }
+      );
+
+      // Send to server
       sendMessageMutation.mutate({
         conversation_id: conversationId,
         content: content?.trim(),
         image_url: imageUrl,
         image_path: imagePath,
+        tempId,
       });
     },
-    [conversationId, sendMessageMutation]
+    [conversationId, user, sendMessageMutation, queryClient]
   );
 
   // Delete message mutation

@@ -221,8 +221,17 @@ export function ConversationList({
               const isSelected = selectedId === conversation.id;
               const isChecked = selectedIds.has(conversation.id);
               const otherUser = conversation.other_user;
-              const displayName =
-                otherUser?.username || otherUser?.first_name || "User";
+              // Build display name from available fields, with fallbacks
+              let displayName = "User";
+              if (otherUser?.username) {
+                displayName = otherUser.username;
+              } else if (otherUser?.first_name) {
+                displayName = otherUser.last_name 
+                  ? `${otherUser.first_name} ${otherUser.last_name}`.trim()
+                  : otherUser.first_name;
+              } else if (otherUser?.last_name) {
+                displayName = otherUser.last_name;
+              }
               const initial = displayName.charAt(0).toUpperCase();
               const unreadCount = conversation.my_participant?.unread_count || 0;
               const isMuted = conversation.my_participant?.muted;

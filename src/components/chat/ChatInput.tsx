@@ -1,8 +1,12 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Send, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+export interface ChatInputHandle {
+  focus: () => void;
+}
 
 interface ChatInputProps {
   onSend: (content?: string, imageUrl?: string, imagePath?: string) => void;
@@ -10,22 +14,46 @@ interface ChatInputProps {
   disabled?: boolean;
   placeholder?: string;
   isUploading?: boolean;
+  autoFocus?: boolean;
 }
 
-export function ChatInput({
-  onSend,
-  onImageUpload,
-  disabled = false,
-  placeholder = "Type a message...",
-  isUploading = false,
-}: ChatInputProps) {
-  const [message, setMessage] = useState("");
-  const [imagePreview, setImagePreview] = useState<{
-    file: File;
-    preview: string;
-  } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
+  function ChatInput(
+    {
+      onSend,
+      onImageUpload,
+      disabled = false,
+      placeholder = "Type a message...",
+      isUploading = false,
+      autoFocus = false,
+    },
+    ref
+  ) {
+    const [message, setMessage] = useState("");
+    const [imagePreview, setImagePreview] = useState<{
+      file: File;
+      preview: string;
+    } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Expose focus method to parent
+    useImperativeHandle(ref, () => ({
+      focus: () => {
+        textareaRef.current?.focus();
+      },
+    }));
+
+    // Auto-focus on mount if enabled
+    useEffect(() => {
+      if (autoFocus && !disabled) {
+        // Small delay to ensure DOM is ready
+        const timeoutId = setTimeout(() => {
+          textareaRef.current?.focus();
+        }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [autoFocus, disabled]);
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
@@ -175,4 +203,5 @@ export function ChatInput({
       </div>
     </div>
   );
-}
+  }
+);

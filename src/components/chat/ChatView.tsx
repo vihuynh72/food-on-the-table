@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { Loader2, MessageSquare } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "./MessageBubble";
-import { ChatInput } from "./ChatInput";
+import { ChatInput, type ChatInputHandle } from "./ChatInput";
 import { ChatHeader } from "./ChatHeader";
 import type { ConversationWithDetails, MessageWithSender } from "@/types/chat";
 
@@ -40,14 +39,41 @@ export function ChatView({
   showBackButton = true,
 }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<ChatInputHandle>(null);
 
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  // Scroll to bottom function
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, []);
+
+  // Scroll to bottom immediately when conversation changes or loads
+  useLayoutEffect(() => {
+    // Use instant scroll when conversation first loads
+    scrollToBottom("instant");
+  }, [conversation?.id, scrollToBottom]);
+
+  // Focus chat input when conversation changes
+  useEffect(() => {
+    if (conversation?.id) {
+      // Delay to ensure component is mounted
+      const timeoutId = setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [conversation?.id]);
+
+  // Scroll to bottom smoothly when new messages arrive
+  useEffect(() => {
+    // Small delay to ensure DOM is updated
+    const timeoutId = setTimeout(() => {
+      scrollToBottom("smooth");
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages.length, scrollToBottom]);
 
   // Empty state - no conversation selected
   if (!conversation && !isLoading) {
@@ -65,8 +91,8 @@ export function ChatView({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      {/* Header */}
+    <div className="flex-1 flex flex-col h-full min-h-0">
+      {/* Header - fixed height */}
       <ChatHeader
         conversation={conversation}
         onBack={onBack}
@@ -77,8 +103,11 @@ export function ChatView({
         showBackButton={showBackButton}
       />
 
-      {/* Messages area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+      {/* Messages area - takes remaining space and scrolls */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto min-h-0 p-4"
+      >
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -106,23 +135,27 @@ export function ChatView({
                 />
               );
             })}
-            <div ref={messagesEndRef} />
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} className="h-1" />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
-      {/* Input */}
-      <ChatInput
-        onSend={onSend}
-        onImageUpload={onImageUpload}
-        disabled={isSending || !conversation}
-        isUploading={isUploading}
-        placeholder={
-          conversation?.interest_status === "cancelled"
-            ? "This request was declined"
-            : "Type a message..."
-        }
-      />
+      {/* Input - fixed at bottom */}
+      <div className="flex-shrink-0 border-t bg-background">
+        <ChatInput
+          ref={chatInputRef}
+          onSend={onSend}
+          onImageUpload={onImageUpload}
+          disabled={!conversation}
+          isUploading={isUploading}
+          placeholder={
+            conversation?.interest_status === "cancelled"
+              ? "This request was declined"
+              : "Type a message..."
+          }
+        />
+      </div>
     </div>
   );
 }

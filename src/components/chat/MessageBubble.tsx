@@ -23,7 +23,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
   ({ message, showAvatar = true, onDelete }, ref) => {
     const isMine = message.is_mine;
     const isDeleted = message.deleted_at !== null;
-    const isOptimistic = (message as any).optimistic;
 
     const formatTime = (dateString: string) => {
       const date = new Date(dateString);
@@ -38,9 +37,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const getStatusIcon = () => {
       if (!isMine) return null;
-      if (isOptimistic || message.status === MessageStatus.SENDING) {
-        return <div className="h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />;
-      }
+      // Don't show spinner for optimistic - just show check for smooth experience
       if (message.status === MessageStatus.READ) {
         return <CheckCheck className="h-3 w-3 text-blue-500" />;
       }
@@ -90,8 +87,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 ? "bg-muted text-muted-foreground italic"
                 : isMine
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted",
-              isOptimistic && "opacity-70"
+                : "bg-muted"
             )}
           >
             {isDeleted ? (
@@ -134,7 +130,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         </div>
 
         {/* Delete button (for own messages) */}
-        {isMine && !isDeleted && !isOptimistic && onDelete && (
+        {isMine && !isDeleted && onDelete && (
           <Button
             variant="ghost"
             size="icon"
@@ -148,7 +144,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     );
 
     // Wrap in context menu for desktop right-click
-    if (isMine && !isDeleted && !isOptimistic && onDelete) {
+    if (isMine && !isDeleted && onDelete) {
       return (
         <ContextMenu>
           <ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
