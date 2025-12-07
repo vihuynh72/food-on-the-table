@@ -70,7 +70,7 @@ export function CommunityFilters({
     }
   };
 
-  const FilterContent = () => (
+  const filterContent = (
     <div className="space-y-6">
       <div className="space-y-3">
         <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Distance</h3>
@@ -136,7 +136,7 @@ export function CommunityFilters({
     <>
       {/* Desktop View */}
       <div className={`hidden md:block ${className}`}>
-        <FilterContent />
+        {filterContent}
       </div>
 
       {/* Mobile View */}
@@ -161,7 +161,7 @@ export function CommunityFilters({
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6">
-              <FilterContent />
+              {filterContent}
             </div>
           </SheetContent>
         </Sheet>
