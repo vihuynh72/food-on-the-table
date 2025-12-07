@@ -314,6 +314,109 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          left_at: string | null
+          muted: boolean
+          unread_count: number
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          muted?: boolean
+          unread_count?: number
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          left_at?: string | null
+          muted?: boolean
+          unread_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "impact_leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          interest_id: string | null
+          last_message_at: string | null
+          last_message_preview: string | null
+          post_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          interest_id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          post_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          interest_id?: string | null
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          post_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_interest_id_fkey"
+            columns: ["interest_id"]
+            isOneToOne: true
+            referencedRelation: "community_interests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donations: {
         Row: {
           created_at: string | null
@@ -812,6 +915,118 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string | null
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edited_at: string | null
+          id: string
+          image_path: string | null
+          image_url: string | null
+          message_type: string | null
+          sender_id: string | null
+          status: string | null
+        }
+        Insert: {
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          message_type?: string | null
+          sender_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          message_type?: string | null
+          sender_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_profiles_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "impact_leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_profiles_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          donation_complete: boolean | null
+          email_notifications: boolean | null
+          id: string
+          interest_accepted: boolean | null
+          interest_declined: boolean | null
+          interest_received: boolean | null
+          message_received: boolean | null
+          pickup_confirmed: boolean | null
+          push_notifications: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          donation_complete?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          interest_accepted?: boolean | null
+          interest_declined?: boolean | null
+          interest_received?: boolean | null
+          message_received?: boolean | null
+          pickup_confirmed?: boolean | null
+          push_notifications?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          donation_complete?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          interest_accepted?: boolean | null
+          interest_declined?: boolean | null
+          interest_received?: boolean | null
+          message_received?: boolean | null
+          pickup_confirmed?: boolean | null
+          push_notifications?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -947,6 +1162,7 @@ export type Database = {
       accept_interest: {
         Args: {
           p_interest_id: string
+          p_message?: string
           p_pickup_notes?: string
           p_pickup_time?: string
         }
@@ -960,14 +1176,93 @@ export type Database = {
         }
         Returns: Json
       }
-      decline_interest: { Args: { p_interest_id: string }; Returns: Json }
+      decline_interest: {
+        Args: { p_interest_id: string; p_message?: string }
+        Returns: Json
+      }
+      delete_all_notifications: { Args: never; Returns: Json }
+      delete_message: { Args: { p_message_id: string }; Returns: Json }
+      delete_notifications: {
+        Args: { p_notification_ids: string[] }
+        Returns: Json
+      }
+      delete_read_notifications: { Args: never; Returns: Json }
+      ensure_notification_preferences: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          donation_complete: boolean | null
+          email_notifications: boolean | null
+          id: string
+          interest_accepted: boolean | null
+          interest_declined: boolean | null
+          interest_received: boolean | null
+          message_received: boolean | null
+          pickup_confirmed: boolean | null
+          push_notifications: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_leaderboard: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          current_streak_days: number
+          first_name: string
+          level: number
+          meals_saved: number
+          neighbors_helped: number
+          rank: number
+          shares_completed: number
+          total_points: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_or_create_conversation: {
+        Args: { p_interest_id: string }
+        Returns: string
+      }
+      get_total_unread_messages: { Args: never; Returns: number }
       get_unread_notification_count: { Args: never; Returns: number }
+      insert_system_message: {
+        Args: { p_content: string; p_conversation_id: string }
+        Returns: string
+      }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
       mark_notifications_read: {
         Args: { p_notification_ids: string[] }
         Returns: Json
       }
       send_interest_message: {
         Args: { p_interest_id: string; p_message: string }
+        Returns: Json
+      }
+      send_message: {
+        Args: {
+          p_content?: string
+          p_conversation_id: string
+          p_image_path?: string
+          p_image_url?: string
+        }
+        Returns: Json
+      }
+      should_send_notification: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: boolean
+      }
+      toggle_conversation_mute: {
+        Args: { p_conversation_id: string }
         Returns: Json
       }
     }
