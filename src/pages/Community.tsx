@@ -171,14 +171,16 @@ export default function Community() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_300px] gap-4 items-start h-[calc(100vh-180px)]">
             {/* Left: Filters */}
-            <CommunityFilters
-              selectedCategories={selectedCategories}
-              onCategoryChange={setSelectedCategories}
-              selectedTags={selectedTags}
-              onTagChange={setSelectedTags}
-              distance={distance}
-              onDistanceChange={setDistance}
-            />
+            <div className="relative z-20">
+              <CommunityFilters
+                selectedCategories={selectedCategories}
+                onCategoryChange={setSelectedCategories}
+                selectedTags={selectedTags}
+                onTagChange={setSelectedTags}
+                distance={distance}
+                onDistanceChange={setDistance}
+              />
+            </div>
 
             {/* Center: Carousel Feed */}
             <div className="h-full w-full rounded-xl bg-muted/10 border overflow-visible flex items-center justify-center">
