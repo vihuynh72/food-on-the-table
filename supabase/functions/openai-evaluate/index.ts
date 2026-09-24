@@ -12,13 +12,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Read the body once so the fallback below can still see expiryDate/storage
+  const { name, quantity, expiryDate, storage, notes } = await req.json().catch(() => ({}));
+
   try {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY not configured");
     }
-
-    const { name, quantity, expiryDate, storage, notes } = await req.json();
 
     const prompt = `
       Evaluate this food item for safety and usability.
@@ -90,7 +91,6 @@ serve(async (req) => {
     console.error("Error:", error);
     
     // Fallback mock response if API fails
-    const { expiryDate, storage } = await req.json().catch(() => ({}));
     const isExpired = expiryDate ? new Date(expiryDate) < new Date() : false;
     const isPerishable = storage ? ["fridge", "freezer"].includes(storage.toLowerCase()) : false;
     

@@ -44,16 +44,16 @@ serve(async (req) => {
     prompt += `
       Response Format (JSON only):
       {
-        "title": "A catchy, appetizing title",
-        "description": "A short, 1-2 sentence 'hero' description",
-        "ingredients": ["List of ingredients with precise quantities"],
-        "instructions": ["Clear, step-by-step instructions"],
+        "title": "A catchy, appetizing title (e.g., 'Rustic Tuscan Bean Stew' not just 'Bean Stew')",
+        "description": "A short, 1-2 sentence 'hero' description that makes the user want to eat this immediately. Describe the taste and texture.",
+        "ingredients": ["List of ingredients with precise quantities. Group them logically if possible."],
+        "instructions": ["Clear, step-by-step instructions. Use **bold** for key actions, times, and temperatures."],
         "cookingTime": "e.g., '30 mins'",
         "servings": "e.g., '2 servings'",
         "difficulty": "Easy/Medium/Hard",
         "calories": "e.g., '450 kcal'",
-        "tips": ["2-3 pro chef tips"],
-        "tags": ["3-4 short tags"]
+        "tips": ["2-3 pro chef tips for elevating the dish, substitutions, or plating ideas."],
+        "tags": ["3-4 short tags describing the vibe, e.g., 'Comfort Food', 'Spicy', 'One-Pot'"]
       }
       
       Do not include markdown formatting. Just raw JSON.

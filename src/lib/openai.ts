@@ -28,11 +28,12 @@ export interface RecipeOptions {
   cookingMethod?: string;
 }
 
-// Pull the `{ error }` message the edge functions return on failure
+// Pull the message from our functions' `{ error }` body or Supabase gateway errors (`message`/`msg`)
 async function getFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
   if (error instanceof FunctionsHttpError) {
     const body = await error.context.json().catch(() => null);
-    if (body?.error) return body.error;
+    const message = body?.error ?? body?.message ?? body?.msg;
+    if (typeof message === "string") return message;
   }
   return error instanceof Error && error.message ? error.message : fallback;
 }
