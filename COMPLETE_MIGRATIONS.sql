@@ -3,7 +3,7 @@
 -- =====================================================
 -- This file contains ALL migrations needed for the app.
 -- Run this in Supabase SQL Editor:
--- https://supabase.com/dashboard/project/ppxotwsjporgjskldbgo/sql
+-- https://supabase.com/dashboard/project/<your-project-ref>/sql
 -- =====================================================
 
 -- =====================================================

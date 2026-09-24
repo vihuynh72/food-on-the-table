@@ -2,8 +2,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://ppxotwsjporgjskldbgo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweG90d3NqcG9yZ2pza2xkYmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMDQwMDEsImV4cCI6MjA3OTY4MDAwMX0.0yKzIijMLG78EtsvTT1mfvQ2OLqlu-f1Xcbyed0suaA";
+// Configured via .env (see .env.example) — never hardcode project credentials here
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env and fill them in."
+  );
+}
 
 const isDev = typeof import.meta !== "undefined" ? import.meta.env.DEV : false;
 

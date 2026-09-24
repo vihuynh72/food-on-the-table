@@ -9,7 +9,8 @@ import placeDetailsHandler from "./api/place-details";
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === "development";
   const env = loadEnv(mode, process.cwd(), "");
-  const googleApiKey = env.VITE_GOOGLE_MAPS_API_KEY;
+  // Prefer the dedicated server key; the browser Maps key should be referrer-restricted
+  const googleApiKey = env.PLACE_DETAILS_API_KEY || env.VITE_GOOGLE_MAPS_API_KEY;
 
   const devApiProxy: PluginOption | undefined = isDevelopment
     ? {
